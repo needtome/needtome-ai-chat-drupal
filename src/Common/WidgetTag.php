@@ -6,7 +6,7 @@ namespace Drupal\needtome_ai_chat\Common;
 
 class WidgetTag
 {
-    public function options(Host $host, string $lang): ?array
+    public function options(Host $host, string $lang, ?string $requestUri = null): ?array
     {
         $registry = new ChatRegistry($host instanceof ScopedHost ? $host->baseHost() : $host);
         $ids = $host instanceof ScopedHost ? array($host->chatId()) : $registry->ids();
@@ -14,7 +14,7 @@ class WidgetTag
         foreach ($ids as $id) {
             $chat = $host instanceof ScopedHost ? $host : $registry->scoped($id);
             if (!$chat || !$chat->registered()) continue;
-            $options = $this->singleOptions($chat, $lang);
+            $options = $this->singleOptions($chat, $lang, $requestUri);
             if ($options !== null) $chats[] = $options;
         }
         if (!$chats) return null;
@@ -28,13 +28,13 @@ class WidgetTag
         return array('base' => $base, 'lang' => $chats[0]['lang'], 'widget_version' => $version, 'chats' => $chats);
     }
 
-    private function singleOptions(ScopedHost $host, string $lang): ?array
+    private function singleOptions(ScopedHost $host, string $lang, ?string $requestUri): ?array
     {
         $key = $host->settingGet('widget_key');
         if (!is_string($key) || !preg_match('/^wk_[A-Za-z0-9]{24}$/', $key)) return null;
         $stored = $host->settingGet('widget_options', array());
         $stored = is_array($stored) ? $stored : array();
-        if (!(bool) ($stored['enabled'] ?? false) || !$this->pageAllowed($host, $stored)) return null;
+        if (!(bool) ($stored['enabled'] ?? false) || !$this->pageAllowed($host, $stored, $requestUri)) return null;
         $defaults = array('theme' => 'classic', 'color' => '#4f46e5', 'position' => 'right', 'load' => 'interaction', 'delay' => 5);
         $options = array_replace($defaults, $stored);
         $options['key'] = $key;
@@ -53,12 +53,12 @@ class WidgetTag
         return $options;
     }
 
-    private function pageAllowed(Host $host, array $options): bool
+    private function pageAllowed(Host $host, array $options, ?string $requestUri): bool
     {
         $mode = (string) ($options['pages_mode'] ?? 'all');
         if ($mode === 'all') return true;
         $rules = is_array($options['pages'] ?? null) ? $options['pages'] : preg_split('/\\r\\n|\\r|\\n/', (string) ($options['pages'] ?? ''));
-        $requestUri = isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+        $requestUri = $requestUri ?? (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/');
         $path = (string) preg_replace('#^[a-z][a-z0-9+.\\-]*://[^/?\\#]*#i', '', $requestUri);
         $path = (string) strtok($path, '?#');
         if ($path === '' || $path[0] !== '/') $path = '/'.$path;
@@ -81,9 +81,9 @@ class WidgetTag
         return $mode === 'only' ? $hit : !$hit;
     }
 
-    public function render(Host $host, string $loaderUrl, string $lang, ?string $nonce = null): string
+    public function render(Host $host, string $loaderUrl, string $lang, ?string $nonce = null, ?string $requestUri = null): string
     {
-        $options = $this->options($host, $lang);
+        $options = $this->options($host, $lang, $requestUri);
         if ($options === null) {
             return '';
         }

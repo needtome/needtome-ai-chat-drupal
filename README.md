@@ -68,7 +68,7 @@ Interface translations are provided through
 The project does not ship `.po` files.
 
 This project is licensed under the GNU General Public License, version 2 or any
-later version. See [LICENSE.txt](LICENSE.txt).
+later version.
 
 ## Maintainers
 

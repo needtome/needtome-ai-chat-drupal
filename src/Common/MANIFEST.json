@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
   "files": {
-    "AbstractHost.php": "133e9d09beb4da419ab6894fcd1bdd2217a885e650525bfe566eef48afb56e70",
+    "AbstractHost.php": "9e880f509c32e66ec6623cbeac7803ade3e54a4d9088ccd4b6a3aa7cee98dd96",
     "AdminApi.php": "e2d9549cc5e67d9a5427bb1f59fd8667fbc3d446ac6311ba0ed7e7f315ac06f0",
     "AdminRequest.php": "b99beda6841f81c5949c144122a13f110b3d6b0fa38cdf9c047c6d365a36efb9",
     "AdminResponse.php": "c156146e64debab59b015e6c16bb66a7fdd5b8d6eda43c4e1f141676a032c172",
@@ -24,6 +24,6 @@
     "TokenCrypto.php": "68f65754d264a6e61e17fe4daa23e4af15f3a4f8b6be513dd783e8f62bf87316",
     "Uninstaller.php": "b9fdc5c22ced5eef6d47fe48a07a2e905f5755a837b2848f120540b840170de8",
     "Version.php": "cea41e199b1f40bbc24cf147d93cb5a340725589a191cc6faa789dba3c8a39a0",
-    "WidgetTag.php": "b1bf4632897dcaf3d43693a136464f2d0be224e4ed9818207d2d0157b22a9890"
+    "WidgetTag.php": "3930e0f60f9611e0565901e6b71ad4848af52c0f48d8fac3072b4de74712856c"
   }
 }

@@ -143,7 +143,7 @@ abstract class AbstractHost implements Host
             return self::DEFAULT_BASE;
         }
         $port = isset($parts['port']) ? (int) $parts['port'] : null;
-        if ($port !== null && ($port < 1 || $port > 65535)) {
+        if ($port !== null && $port < 1) {
             return self::DEFAULT_BASE;
         }
         $local = in_array($host, array('localhost', '127.0.0.1', '[::1]', '::1'), true);

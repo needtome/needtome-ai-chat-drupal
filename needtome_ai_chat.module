@@ -28,7 +28,7 @@ function needtome_ai_chat_page_attachments(array &$attachments): void {
 
   $host = $container->get('needtome_ai_chat.host');
   $lang = $container->get('language_manager')->getCurrentLanguage()->getId();
-  $options = (new WidgetTag())->options($host, $lang);
+  $options = (new WidgetTag())->options($host, $lang, $request->getRequestUri());
   if ($options === NULL) {
     return;
   }
@@ -91,7 +91,7 @@ function needtome_ai_chat_csp_policy_alter($policy, $response): void {
       return;
     }
     $lang = $container->get('language_manager')->getCurrentLanguage()->getId();
-    if ($widgetTag->options($host, $lang) === NULL) {
+    if ($widgetTag->options($host, $lang, $request->getRequestUri()) === NULL) {
       return;
     }
   }

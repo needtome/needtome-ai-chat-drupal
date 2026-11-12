@@ -49,7 +49,7 @@ if (!is_dir($dist) && !mkdir($dist, 0775, TRUE) && !is_dir($dist)) {
   fwrite(STDERR, "Unable to create dist directory.\n");
   exit(1);
 }
-$version = '1.0.1';
+$version = '1.0.2';
 $target = $dist . '/needtome_ai_chat-' . $version . '.zip';
 $zip = new ZipArchive();
 if ($zip->open($target, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
