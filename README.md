@@ -1,4 +1,4 @@
-# AI Worker Chat for Drupal
+# NeedToMe AI Chat for Drupal
 
 ## Introduction
 
@@ -6,8 +6,8 @@ Connect a Drupal site to an AI Worker web chat and synchronize public content
 with its knowledge base. The module includes its administration interface and
 does not load executable administration code from a remote server.
 
-For project information, visit the [Drupal.org project page](https://www.drupal.org/project/aiworker_chat)
-or report a problem in the [issue queue](https://www.drupal.org/project/issues/aiworker_chat).
+For project information, visit the [Drupal.org project page](https://www.drupal.org/project/needtome_ai_chat)
+or report a problem in the [issue queue](https://www.drupal.org/project/issues/needtome_ai_chat).
 
 ## Requirements
 
@@ -21,19 +21,19 @@ or report a problem in the [issue queue](https://www.drupal.org/project/issues/a
 Install with Composer:
 
 ```sh
-composer require drupal/aiworker_chat
-drush en aiworker_chat -y
+composer require drupal/needtome_ai_chat
+drush en needtome_ai_chat -y
 ```
 
 You can also download the module ZIP and install it from **Extend → Install new
-module**. Alternatively, extract the `aiworker_chat` directory into
-`web/modules/custom/aiworker_chat`, then enable it from **Extend** or with
+module**. Alternatively, extract the `needtome_ai_chat` directory into
+`web/modules/custom/needtome_ai_chat`, then enable it from **Extend** or with
 Drush. See Drupal's guide to [installing modules](https://www.drupal.org/docs/extending-drupal/installing-modules)
 for other supported installation methods.
 
 ## Configuration
 
-Open **Configuration → Web services → AI Worker Chat** and select **Connect**.
+Open **Configuration → Web services → NeedToMe AI Chat** and select **Connect**.
 Authorize the Drupal site in AI Worker. If the account has more than one chat,
 select the chat to use. The public widget remains disabled until an
 administrator enables **Show the chat on the site's public pages**.
@@ -44,16 +44,16 @@ selection includes all content types. Product synchronization is optional and
 requires Drupal Commerce Product. Run a manual synchronization with:
 
 ```sh
-drush aiworker_chat:sync --dry-run
-drush aiworker_chat:sync --dry-run --pages --products
-drush aiworker_chat:sync --force --pages
+drush needtome_ai_chat:sync --dry-run
+drush needtome_ai_chat:sync --dry-run --pages --products
+drush needtome_ai_chat:sync --force --pages
 ```
 
 Drupal cron enqueues scheduled synchronization. Set the optional **Site URL for
 Drush and cron** value if Drupal cannot infer the public site URL in a
 command-line run. The default AI Worker service URL is `https://kra.name/app`.
 
-The `administer aiworker_chat` permission controls the settings page and its
+The `administer needtome_ai_chat` permission controls the settings page and its
 same-origin API. OAuth uses PKCE, and refresh tokens are encrypted with the
 Drupal site hash salt. Uninstalling the module revokes the OAuth token where
 possible and removes its stored settings and queued work.

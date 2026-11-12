@@ -2,7 +2,7 @@
 // phpcs:ignoreFile -- Generated from the shared php-common source.
 // Part of NeedToMe AI Chat php-common. Edit integrations/php-common/src, then run node integrations/php-common/sync.mjs.
 
-namespace Drupal\aiworker_chat\Common;
+namespace Drupal\needtome_ai_chat\Common;
 
 abstract class AbstractHost implements Host
 {
@@ -20,7 +20,7 @@ abstract class AbstractHost implements Host
 
     public function pageSources(): array
     {
-        $scope = $GLOBALS['needtome_aiworker_chat_scoped_host'] ?? null;
+        $scope = $GLOBALS['needtome_ai_chat_scoped_host'] ?? null;
         if ($scope instanceof ScopedHost && $scope->baseHost() === $this) return $scope->scopedPageSources();
         $options = $this->settingGet('sync_options', array());
         return is_array($options) && isset($options['pages']['sources']) && is_array($options['pages']['sources'])

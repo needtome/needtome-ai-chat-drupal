@@ -1,14 +1,14 @@
 <?php
 
-namespace Drupal\Tests\aiworker_chat\Unit;
+namespace Drupal\Tests\needtome_ai_chat\Unit;
 
-use Drupal\aiworker_chat\Controller\AdminController;
+use Drupal\needtome_ai_chat\Controller\AdminController;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests Drupal request mapping before requests reach php-common. */
-#[Group('aiworker_chat')]
+#[Group('needtome_ai_chat')]
 class AdminControllerTest extends TestCase {
 
   /**
@@ -38,7 +38,7 @@ class AdminControllerTest extends TestCase {
        * Provides has permission for the test.
        */
       public function hasPermission(string $permission): bool {
-        return $permission === 'administer aiworker_chat';
+        return $permission === 'administer needtome_ai_chat';
       }
 
     };

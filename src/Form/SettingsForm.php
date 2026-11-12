@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\aiworker_chat\Form;
+namespace Drupal\needtome_ai_chat\Form;
 
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
-use Drupal\aiworker_chat\Common\AbstractHost;
+use Drupal\needtome_ai_chat\Common\AbstractHost;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -38,21 +38,21 @@ class SettingsForm extends ConfigFormBase {
    * Returns the configuration names edited by this form.
    */
   protected function getEditableConfigNames(): array {
-    return ['aiworker_chat.settings'];
+    return ['needtome_ai_chat.settings'];
   }
 
   /**
    * Returns the unique form identifier.
    */
   public function getFormId(): string {
-    return 'aiworker_chat_settings_form';
+    return 'needtome_ai_chat_settings_form';
   }
 
   /**
    * Builds the AI Worker endpoint settings form.
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('aiworker_chat.settings');
+    $config = $this->config('needtome_ai_chat.settings');
     $form['base'] = [
       '#type' => 'url',
       '#title' => $this->t('AI Worker base URL'),
@@ -105,11 +105,11 @@ class SettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     parent::submitForm($form, $form_state);
     $siteUrl = trim((string) $form_state->getValue('site_url'));
-    $this->config('aiworker_chat.settings')
+    $this->config('needtome_ai_chat.settings')
       ->set('base', rtrim(trim((string) $form_state->getValue('base')), '/'))
       ->set('site_url', $siteUrl === '' ? '' : rtrim($siteUrl, '/'))
       ->save();
-    $this->cacheTagsInvalidator->invalidateTags(['aiworker_chat', 'aiworker_chat_widget']);
+    $this->cacheTagsInvalidator->invalidateTags(['needtome_ai_chat', 'needtome_ai_chat_widget']);
   }
 
 }

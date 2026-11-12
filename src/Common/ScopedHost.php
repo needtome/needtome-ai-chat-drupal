@@ -2,7 +2,7 @@
 // phpcs:ignoreFile -- Generated from the shared php-common source.
 // Part of NeedToMe AI Chat php-common. Edit integrations/php-common/src, then run node integrations/php-common/sync.mjs.
 
-namespace Drupal\aiworker_chat\Common;
+namespace Drupal\needtome_ai_chat\Common;
 
 /** Host decorator that scopes chat settings and locks while leaving OAuth/account metadata site-wide. */
 class ScopedHost extends AbstractHost
@@ -96,12 +96,12 @@ class ScopedHost extends AbstractHost
 
     private function inChatContext(callable $callback)
     {
-        $before = $GLOBALS['needtome_aiworker_chat_scoped_host'] ?? null;
-        $GLOBALS['needtome_aiworker_chat_scoped_host'] = $this;
+        $before = $GLOBALS['needtome_ai_chat_scoped_host'] ?? null;
+        $GLOBALS['needtome_ai_chat_scoped_host'] = $this;
         try { return $callback(); }
         finally {
-            if ($before === null) unset($GLOBALS['needtome_aiworker_chat_scoped_host']);
-            else $GLOBALS['needtome_aiworker_chat_scoped_host'] = $before;
+            if ($before === null) unset($GLOBALS['needtome_ai_chat_scoped_host']);
+            else $GLOBALS['needtome_ai_chat_scoped_host'] = $before;
         }
     }
 
@@ -109,12 +109,12 @@ class ScopedHost extends AbstractHost
     {
         $scope = $this;
         return (static function () use ($scope, $callback) {
-            $before = $GLOBALS['needtome_aiworker_chat_scoped_host'] ?? null;
-            $GLOBALS['needtome_aiworker_chat_scoped_host'] = $scope;
+            $before = $GLOBALS['needtome_ai_chat_scoped_host'] ?? null;
+            $GLOBALS['needtome_ai_chat_scoped_host'] = $scope;
             try { foreach ($callback() as $row) yield $row; }
             finally {
-                if ($before === null) unset($GLOBALS['needtome_aiworker_chat_scoped_host']);
-                else $GLOBALS['needtome_aiworker_chat_scoped_host'] = $before;
+                if ($before === null) unset($GLOBALS['needtome_ai_chat_scoped_host']);
+                else $GLOBALS['needtome_ai_chat_scoped_host'] = $before;
             }
         })();
     }

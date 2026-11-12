@@ -2,17 +2,17 @@
 
 /**
  * @file
- * Hooks for the AI Worker Chat module.
+ * Hooks for the NeedToMe AI Chat module.
  */
 
-use Drupal\aiworker_chat\Common\WidgetTag;
+use Drupal\needtome_ai_chat\Common\WidgetTag;
 
 require_once __DIR__ . '/src/Common/autoload.php';
 
 /**
  * Implements hook_page_attachments().
  */
-function aiworker_chat_page_attachments(array &$attachments): void {
+function needtome_ai_chat_page_attachments(array &$attachments): void {
   $container = \Drupal::getContainer();
   if ($container->get('router.admin_context')->isAdminRoute()) {
     return;
@@ -26,13 +26,13 @@ function aiworker_chat_page_attachments(array &$attachments): void {
     return;
   }
 
-  $host = $container->get('aiworker_chat.host');
+  $host = $container->get('needtome_ai_chat.host');
   $lang = $container->get('language_manager')->getCurrentLanguage()->getId();
   $options = (new WidgetTag())->options($host, $lang);
   if ($options === NULL) {
     return;
   }
-  $extensionPath = $container->get('extension.list.module')->getPath('aiworker_chat');
+  $extensionPath = $container->get('extension.list.module')->getPath('needtome_ai_chat');
   $loader = $container->get('file_url_generator')->generateAbsoluteString($extensionPath . '/assets/aiwc-loader.js');
   $json = json_encode($options, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
   if (!is_string($json)) {
@@ -56,9 +56,9 @@ function aiworker_chat_page_attachments(array &$attachments): void {
       '#tag' => 'script',
       '#attributes' => $attributes,
     ],
-    'aiworker_chat_widget',
+    'needtome_ai_chat_widget',
   ];
-  $attachments['#cache']['tags'][] = 'aiworker_chat_widget';
+  $attachments['#cache']['tags'][] = 'needtome_ai_chat_widget';
   $attachments['#cache']['contexts'][] = 'languages:language_interface';
 
 }
@@ -66,21 +66,21 @@ function aiworker_chat_page_attachments(array &$attachments): void {
 /**
  * Implements hook_csp_policy_alter().
  */
-function aiworker_chat_csp_policy_alter($policy, $response): void {
+function needtome_ai_chat_csp_policy_alter($policy, $response): void {
   $container = \Drupal::getContainer();
   if (!$container->get('module_handler')->moduleExists('csp') || !is_object($policy) || !method_exists($policy, 'appendDirective')) {
     return;
   }
   $request = $container->get('request_stack')->getCurrentRequest();
   $adminContext = $container->get('router.admin_context')->isAdminRoute();
-  $adminPreview = $adminContext && $request && $request->attributes->get('_route') === 'aiworker_chat.admin';
+  $adminPreview = $adminContext && $request && $request->attributes->get('_route') === 'needtome_ai_chat.admin';
   if ($adminContext && !$adminPreview) {
     return;
   }
   if (!$request) {
     return;
   }
-  $host = $container->get('aiworker_chat.host');
+  $host = $container->get('needtome_ai_chat.host');
   $widgetTag = new WidgetTag();
   if (!$adminPreview) {
     if ($request->getRequestFormat() !== 'html') {
@@ -106,12 +106,12 @@ function aiworker_chat_csp_policy_alter($policy, $response): void {
 /**
  * Implements hook_cron().
  */
-function aiworker_chat_cron(): void {
-  $config = \Drupal::config('aiworker_chat.settings');
+function needtome_ai_chat_cron(): void {
+  $config = \Drupal::config('needtome_ai_chat.settings');
   $interval = max(3600, (int) $config->get('sync_interval'));
   $state = \Drupal::state();
   $now = \Drupal::time()->getRequestTime();
-  $store = \Drupal::keyValue('aiworker_chat');
+  $store = \Drupal::keyValue('needtome_ai_chat');
   $ids = $store->get('chat_registry', ['chat1']);
   $manualDue = FALSE;
   foreach (is_array($ids) ? $ids : ['chat1'] as $id) {
@@ -124,9 +124,9 @@ function aiworker_chat_cron(): void {
       break;
     }
   }
-  if (!$manualDue && $now - (int) $state->get('aiworker_chat.last_enqueued', 0) < $interval) {
+  if (!$manualDue && $now - (int) $state->get('needtome_ai_chat.last_enqueued', 0) < $interval) {
     return;
   }
-  \Drupal::service('queue')->get('aiworker_chat_sync')->createItem(['pages' => TRUE, 'products' => TRUE]);
-  $state->set('aiworker_chat.last_enqueued', $now);
+  \Drupal::service('queue')->get('needtome_ai_chat_sync')->createItem(['pages' => TRUE, 'products' => TRUE]);
+  $state->set('needtome_ai_chat.last_enqueued', $now);
 }

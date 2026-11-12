@@ -129,10 +129,11 @@ const AIWC = (() => {
     try {
       const query = new URLSearchParams(String(location && location.search || ''));
       const allowed = new Set(['connected', 'linked', 'link_unsupported', 'link_domains', 'link_failed', 'state', 'failed']);
-      const direct = query.get('aiworker_chat_notice') || query.get('aichat_notice') || query.get('aiw_notice') || query.get('connection');
+      // Prefer the Drupal module's final key and retain generic older adapter aliases.
+      const direct = query.get('needtome_ai_chat_notice') || query.get('aichat_notice') || query.get('aiw_notice') || query.get('connection');
       if (allowed.has(direct)) return direct;
-      if (query.get('aiworker_chat_connected') === '1' || query.get('aichat_connected') === '1') return 'connected';
-      const error = query.get('aiworker_chat_error') || query.get('aichat_error');
+      if (query.get('needtome_ai_chat_connected') === '1' || query.get('aichat_connected') === '1') return 'connected';
+      const error = query.get('needtome_ai_chat_error') || query.get('aichat_error');
       if (error === 'state') return 'state';
       if (error) return 'failed';
     } catch (_) { }

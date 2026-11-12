@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\aiworker_chat;
+namespace Drupal\needtome_ai_chat;
 
 use Drush\Drush;
 use Drupal\user\Entity\User;
@@ -20,9 +20,9 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Site\Settings;
-use Drupal\aiworker_chat\Common\AbstractHost;
-use Drupal\aiworker_chat\Common\HtmlToText;
-use Drupal\aiworker_chat\Common\TokenCrypto;
+use Drupal\needtome_ai_chat\Common\AbstractHost;
+use Drupal\needtome_ai_chat\Common\HtmlToText;
+use Drupal\needtome_ai_chat\Common\TokenCrypto;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -34,7 +34,7 @@ class DrupalHost extends AbstractHost {
   /**
    * The adapter's key-value storage wrapper.
    *
-   * @var \Drupal\aiworker_chat\DrupalStorage
+   * @var \Drupal\needtome_ai_chat\DrupalStorage
    */
   private DrupalStorage $storage;
 
@@ -55,7 +55,7 @@ class DrupalHost extends AbstractHost {
     private readonly QueueFactory $queueFactory,
     private readonly EntityFieldManagerInterface $entityFieldManager,
   ) {
-    $this->storage = new DrupalStorage($keyValueFactory->get('aiworker_chat'), $lock);
+    $this->storage = new DrupalStorage($keyValueFactory->get('needtome_ai_chat'), $lock);
   }
 
   /**
@@ -83,14 +83,14 @@ class DrupalHost extends AbstractHost {
    * Returns the configured AI Worker base URL.
    */
   public function base(): string {
-    return self::normalizeBase((string) $this->configFactory->get('aiworker_chat.settings')->get('base'));
+    return self::normalizeBase((string) $this->configFactory->get('needtome_ai_chat.settings')->get('base'));
   }
 
   /**
    * Returns the normalized public URL of this Drupal site.
    */
   public function siteHome(): string {
-    $configured = trim((string) $this->configFactory->get('aiworker_chat.settings')->get('site_url'));
+    $configured = trim((string) $this->configFactory->get('needtome_ai_chat.settings')->get('site_url'));
     if ($configured !== '') {
       return self::normalizeSiteUrl($configured);
     }
@@ -102,7 +102,7 @@ class DrupalHost extends AbstractHost {
     if ($drushUri !== '') {
       return self::normalizeSiteUrl($drushUri);
     }
-    throw new \RuntimeException('Set the Site URL in AI Worker Chat settings, visit the admin page once, or pass --uri to Drush before syncing.');
+    throw new \RuntimeException('Set the Site URL in NeedToMe AI Chat settings, visit the admin page once, or pass --uri to Drush before syncing.');
   }
 
   /**
@@ -116,14 +116,14 @@ class DrupalHost extends AbstractHost {
    * Returns the absolute OAuth callback URL.
    */
   public function callbackUrl(): string {
-    return Url::fromRoute('aiworker_chat.api.callback', [], ['absolute' => TRUE])->toString();
+    return Url::fromRoute('needtome_ai_chat.api.callback', [], ['absolute' => TRUE])->toString();
   }
 
   /**
    * Builds the absolute administration page URL.
    */
   public function adminPageUrl(array $query = []): string {
-    return Url::fromRoute('aiworker_chat.admin', [], ['absolute' => TRUE, 'query' => $query])->toString();
+    return Url::fromRoute('needtome_ai_chat.admin', [], ['absolute' => TRUE, 'query' => $query])->toString();
   }
 
   /**
@@ -197,14 +197,14 @@ class DrupalHost extends AbstractHost {
   public function settingsClear(): void {
     $this->storage->clear();
     $this->invalidateWidget();
-    $this->cacheTagsInvalidator->invalidateTags(['aiworker_chat']);
+    $this->cacheTagsInvalidator->invalidateTags(['needtome_ai_chat']);
   }
 
   /**
    * Reads an item from the adapter cache.
    */
   public function cacheGet(string $key) {
-    $entry = $this->cache->get('aiworker_chat:' . hash('sha256', $key));
+    $entry = $this->cache->get('needtome_ai_chat:' . hash('sha256', $key));
     return $entry ? $entry->data : NULL;
   }
 
@@ -212,14 +212,14 @@ class DrupalHost extends AbstractHost {
    * Stores an item in the adapter cache.
    */
   public function cacheSet(string $key, $value, int $ttl): void {
-    $this->cache->set('aiworker_chat:' . hash('sha256', $key), $value, time() + max(1, $ttl), ['aiworker_chat']);
+    $this->cache->set('needtome_ai_chat:' . hash('sha256', $key), $value, time() + max(1, $ttl), ['needtome_ai_chat']);
   }
 
   /**
    * Removes an item from the adapter cache.
    */
   public function cacheDelete(string $key): void {
-    $this->cache->delete('aiworker_chat:' . hash('sha256', $key));
+    $this->cache->delete('needtome_ai_chat:' . hash('sha256', $key));
   }
 
   /**
@@ -240,7 +240,7 @@ class DrupalHost extends AbstractHost {
    * Adds a knowledge synchronization item to Drupal Queue API.
    */
   public function enqueueSync(array $data): bool {
-    $this->queueFactory->get('aiworker_chat_sync')->createItem($data);
+    $this->queueFactory->get('needtome_ai_chat_sync')->createItem($data);
     return TRUE;
   }
 
@@ -249,7 +249,7 @@ class DrupalHost extends AbstractHost {
    */
   public function sessionGet(string $key) {
     $request = $this->requestStack->getCurrentRequest();
-    return $request && $request->hasSession() ? $request->getSession()->get('aiworker_chat.' . $key) : NULL;
+    return $request && $request->hasSession() ? $request->getSession()->get('needtome_ai_chat.' . $key) : NULL;
   }
 
   /**
@@ -260,7 +260,7 @@ class DrupalHost extends AbstractHost {
     if (!$request || !$request->hasSession()) {
       throw new \RuntimeException('An active Drupal session is required to start OAuth.');
     }
-    $request->getSession()->set('aiworker_chat.' . $key, $value);
+    $request->getSession()->set('needtome_ai_chat.' . $key, $value);
   }
 
   /**
@@ -269,7 +269,7 @@ class DrupalHost extends AbstractHost {
   public function sessionForget(string $key): void {
     $request = $this->requestStack->getCurrentRequest();
     if ($request && $request->hasSession()) {
-      $request->getSession()->remove('aiworker_chat.' . $key);
+      $request->getSession()->remove('needtome_ai_chat.' . $key);
     }
   }
 
@@ -941,7 +941,7 @@ class DrupalHost extends AbstractHost {
    * Invalidates caches for the public widget.
    */
   private function invalidateWidget(): void {
-    $this->cacheTagsInvalidator->invalidateTags(['aiworker_chat', 'aiworker_chat_widget']);
+    $this->cacheTagsInvalidator->invalidateTags(['needtome_ai_chat', 'needtome_ai_chat_widget']);
   }
 
   /**

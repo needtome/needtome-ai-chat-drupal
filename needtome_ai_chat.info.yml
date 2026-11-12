@@ -1,0 +1,7 @@
+name: NeedToMe AI Chat
+type: module
+description: Connects this Drupal site to NeedToMe AI Chat and syncs public content to its knowledge base.
+package: Web services
+core_version_requirement: ^10.3 || ^11
+configure: needtome_ai_chat.settings
+interface translation project: needtome_ai_chat

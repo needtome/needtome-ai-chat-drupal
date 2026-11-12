@@ -1,4 +1,4 @@
-administer aiworker_chat:
-  title: 'Administer AI Worker Chat'
+administer needtome_ai_chat:
+  title: 'Administer NeedToMe AI Chat'
   description: 'Configure the AI Worker connection, widget, and knowledge sync.'
   restrict access: true

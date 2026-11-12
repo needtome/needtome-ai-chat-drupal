@@ -1,15 +1,15 @@
 <?php
 
-namespace Drupal\Tests\aiworker_chat\Unit;
+namespace Drupal\Tests\needtome_ai_chat\Unit;
 
-use Drupal\aiworker_chat\DrupalHost;
+use Drupal\needtome_ai_chat\DrupalHost;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for Drupal document mapping.
  */
-#[Group('aiworker_chat')]
+#[Group('needtome_ai_chat')]
 class DocumentMappingTest extends TestCase {
 
   /**

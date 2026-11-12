@@ -1,17 +1,17 @@
 <?php
 
-namespace Drupal\aiworker_chat\Drush\Commands;
+namespace Drupal\needtome_ai_chat\Drush\Commands;
 
-use Drupal\aiworker_chat\Common\SyncEngine;
-use Drupal\aiworker_chat\DrupalHost;
+use Drupal\needtome_ai_chat\Common\SyncEngine;
+use Drupal\needtome_ai_chat\DrupalHost;
 use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Drush operations for AI Worker Chat.
+ * Drush operations for NeedToMe AI Chat.
  */
-class AiworkerChatCommands extends DrushCommands {
+class NeedToMeAiChatCommands extends DrushCommands {
 
   public function __construct(private readonly DrupalHost $host, private readonly SyncEngine $syncEngine) {
     parent::__construct();
@@ -21,19 +21,19 @@ class AiworkerChatCommands extends DrushCommands {
    * Creates the queue worker with its injected services.
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('aiworker_chat.host'), $container->get('aiworker_chat.sync_engine'));
+    return new static($container->get('needtome_ai_chat.host'), $container->get('needtome_ai_chat.sync_engine'));
   }
 
   /**
    * Synchronizes Drupal content and Commerce products with AI Worker.
    */
-  #[CLI\Command(name: 'aiworker_chat:sync')]
+  #[CLI\Command(name: 'needtome_ai_chat:sync')]
   #[CLI\Help(description: 'Sync this Drupal site\'s public pages and optional Commerce products to AI Worker.')]
   #[CLI\Option(name: 'dry-run', description: 'Show the export plan without sending data.')]
   #[CLI\Option(name: 'force', description: 'Send every public document, ignoring saved hashes.')]
   #[CLI\Option(name: 'pages', description: 'Sync published public Drupal nodes.')]
   #[CLI\Option(name: 'products', description: 'Sync Commerce products when product sync is enabled.')]
-  #[CLI\Usage(name: 'drush aiworker_chat:sync --dry-run', description: 'Preview the public node export.')]
+  #[CLI\Usage(name: 'drush needtome_ai_chat:sync --dry-run', description: 'Preview the public node export.')]
   public function sync(array $options = ['dry-run' => FALSE, 'force' => FALSE, 'pages' => FALSE, 'products' => FALSE]): int {
     try {
       $this->host->siteHome();

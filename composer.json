@@ -1,7 +1,7 @@
 {
-  "name": "drupal/aiworker_chat",
+  "name": "drupal/needtome_ai_chat",
   "type": "drupal-module",
-  "description": "AI Worker Chat integration for Drupal 10 and 11.",
+  "description": "NeedToMe AI Chat integration for Drupal 10 and 11.",
   "license": "GPL-2.0-or-later",
   "require": {
     "php": ">=8.1",
@@ -9,7 +9,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Drupal\\aiworker_chat\\": "src/"
+      "Drupal\\needtome_ai_chat\\": "src/"
     }
   }
 }

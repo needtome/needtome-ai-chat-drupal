@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\aiworker_chat;
+namespace Drupal\needtome_ai_chat;
 
 /**
  * Testable adapter around Drupal's key-value and lock services.
@@ -41,14 +41,14 @@ class DrupalStorage {
    * Acquires a namespaced lock.
    */
   public function acquire(string $name, int $ttl): bool {
-    return $this->lock->acquire('aiworker_chat:' . $name, max(1, $ttl));
+    return $this->lock->acquire('needtome_ai_chat:' . $name, max(1, $ttl));
   }
 
   /**
    * Releases a namespaced lock.
    */
   public function release(string $name): void {
-    $this->lock->release('aiworker_chat:' . $name);
+    $this->lock->release('needtome_ai_chat:' . $name);
   }
 
 }

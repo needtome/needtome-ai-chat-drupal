@@ -2,7 +2,7 @@
 // phpcs:ignoreFile -- Generated from the shared php-common source.
 // Part of NeedToMe AI Chat php-common. Edit integrations/php-common/src, then run node integrations/php-common/sync.mjs.
 
-namespace Drupal\aiworker_chat\Common;
+namespace Drupal\needtome_ai_chat\Common;
 
 class AdminApi
 {
@@ -86,7 +86,7 @@ class AdminApi
                 try {
                     return new AdminResponse(302, null, $this->oauth->beginAuthorization());
                 } catch (\Throwable $exception) {
-                    return new AdminResponse(302, null, $this->host->adminPageUrl(array('aiworker_chat_error' => 'connect_failed')));
+                    return new AdminResponse(302, null, $this->host->adminPageUrl(array('needtome_ai_chat_error' => 'connect_failed')));
                 }
             case 'callback': return $this->callback($request);
             case 'disconnect':
@@ -374,14 +374,14 @@ class AdminApi
     private function callback(AdminRequest $request): AdminResponse
     {
         if (!empty($request->query['error'])) {
-            return new AdminResponse(302, null, $this->host->adminPageUrl(array('aiworker_chat_error' => 'failed')));
+            return new AdminResponse(302, null, $this->host->adminPageUrl(array('needtome_ai_chat_error' => 'failed')));
         }
         try {
             $this->oauth->completeAuthorization((string) ($request->query['state'] ?? ''), (string) ($request->query['code'] ?? ''));
-            return new AdminResponse(302, null, $this->host->adminPageUrl(array('aiworker_chat_connected' => 1)));
+            return new AdminResponse(302, null, $this->host->adminPageUrl(array('needtome_ai_chat_connected' => 1)));
         } catch (\Throwable $exception) {
             $notice = $exception instanceof OAuthException && $exception->status === 403 ? 'state' : 'failed';
-            return new AdminResponse(302, null, $this->host->adminPageUrl(array('aiworker_chat_error' => $notice)));
+            return new AdminResponse(302, null, $this->host->adminPageUrl(array('needtome_ai_chat_error' => $notice)));
         }
     }
 

@@ -2,16 +2,16 @@
 
 /**
  * @file
- * Install and uninstall hooks for the AI Worker Chat module.
+ * Install and uninstall hooks for the NeedToMe AI Chat module.
  */
 
-use Drupal\aiworker_chat\DrupalUninstall;
+use Drupal\needtome_ai_chat\DrupalUninstall;
 
 /**
  * Implements hook_install().
  */
-function aiworker_chat_install(): void {
-  $store = \Drupal::keyValue('aiworker_chat');
+function needtome_ai_chat_install(): void {
+  $store = \Drupal::keyValue('needtome_ai_chat');
   $defaults = [
     'widget_options' => ['enabled' => FALSE, 'load' => 'interaction'],
     'sync_options' => [
@@ -28,20 +28,20 @@ function aiworker_chat_install(): void {
     }
   }
   $state = \Drupal::state();
-  if ($state->get('aiworker_chat.last_enqueued') === NULL) {
-    $state->set('aiworker_chat.last_enqueued', 0);
+  if ($state->get('needtome_ai_chat.last_enqueued') === NULL) {
+    $state->set('needtome_ai_chat.last_enqueued', 0);
   }
 }
 
 /**
  * Implements hook_uninstall().
  */
-function aiworker_chat_uninstall(): void {
+function needtome_ai_chat_uninstall(): void {
   DrupalUninstall::run(
-    \Drupal::service('aiworker_chat.host'),
-    \Drupal::service('aiworker_chat.oauth'),
-    \Drupal::keyValue('aiworker_chat'),
-    \Drupal::service('queue')->get('aiworker_chat_sync'),
+    \Drupal::service('needtome_ai_chat.host'),
+    \Drupal::service('needtome_ai_chat.oauth'),
+    \Drupal::keyValue('needtome_ai_chat'),
+    \Drupal::service('queue')->get('needtome_ai_chat_sync'),
     \Drupal::state(),
     \Drupal::service('cache_tags.invalidator'),
   );

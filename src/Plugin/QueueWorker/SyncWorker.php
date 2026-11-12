@@ -1,20 +1,20 @@
 <?php
 
-namespace Drupal\aiworker_chat\Plugin\QueueWorker;
+namespace Drupal\needtome_ai_chat\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\Attribute\QueueWorker;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\aiworker_chat\Common\SyncEngine;
+use Drupal\needtome_ai_chat\Common\SyncEngine;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Runs one AI Worker knowledge sync from Drupal's cron queue.
  */
 #[QueueWorker(
-  id: 'aiworker_chat_sync',
-  title: new TranslatableMarkup('AI Worker Chat knowledge sync'),
+  id: 'needtome_ai_chat_sync',
+  title: new TranslatableMarkup('NeedToMe AI Chat knowledge sync'),
   cron: ['time' => 60],
 )]
 class SyncWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
@@ -27,7 +27,7 @@ class SyncWorker extends QueueWorkerBase implements ContainerFactoryPluginInterf
    * Creates the queue worker with its injected services.
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
-    return new static($configuration, $plugin_id, $plugin_definition, $container->get('aiworker_chat.sync_engine'));
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('needtome_ai_chat.sync_engine'));
   }
 
   /**

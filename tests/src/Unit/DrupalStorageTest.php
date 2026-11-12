@@ -1,15 +1,15 @@
 <?php
 
-namespace Drupal\Tests\aiworker_chat\Unit;
+namespace Drupal\Tests\needtome_ai_chat\Unit;
 
-use Drupal\aiworker_chat\DrupalStorage;
+use Drupal\needtome_ai_chat\DrupalStorage;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for the Drupal key-value storage adapter.
  */
-#[Group('aiworker_chat')]
+#[Group('needtome_ai_chat')]
 class DrupalStorageTest extends TestCase {
 
   /**
@@ -76,8 +76,8 @@ class DrupalStorageTest extends TestCase {
     self::assertTrue($storage->acquire('refresh', 45));
     $storage->release('refresh');
     self::assertSame([
-      ['acquire', 'aiworker_chat:refresh', 45],
-      ['release', 'aiworker_chat:refresh'],
+      ['acquire', 'needtome_ai_chat:refresh', 45],
+      ['release', 'needtome_ai_chat:refresh'],
     ], $lock->calls);
     $storage->clear();
     self::assertSame([], $keyValue->values);

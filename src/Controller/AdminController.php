@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\aiworker_chat\Controller;
+namespace Drupal\needtome_ai_chat\Controller;
 
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -9,9 +9,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Url;
-use Drupal\aiworker_chat\DrupalHost;
-use Drupal\aiworker_chat\Common\AdminApi;
-use Drupal\aiworker_chat\Common\AdminRequest;
+use Drupal\needtome_ai_chat\DrupalHost;
+use Drupal\needtome_ai_chat\Common\AdminApi;
+use Drupal\needtome_ai_chat\Common\AdminRequest;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -57,9 +57,9 @@ class AdminController {
     $json = is_string($json) ? $json : '{}';
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['aiworker_chat-admin-page']],
-      '#attached' => ['library' => ['aiworker_chat/admin']],
-      '#cache' => ['max-age' => 0, 'tags' => ['aiworker_chat_widget']],
+      '#attributes' => ['class' => ['needtome_ai_chat-admin-page']],
+      '#attached' => ['library' => ['needtome_ai_chat/admin']],
+      '#cache' => ['max-age' => 0, 'tags' => ['needtome_ai_chat_widget']],
       'mount' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
@@ -71,7 +71,7 @@ class AdminController {
       'settings_link' => [
         '#type' => 'link',
         '#title' => new TranslatableMarkup('Connection and site URL settings', [], [], $this->stringTranslation),
-        '#url' => Url::fromRoute('aiworker_chat.settings'),
+        '#url' => Url::fromRoute('needtome_ai_chat.settings'),
       ],
     ];
   }
@@ -113,7 +113,7 @@ class AdminController {
    * Checks whether the account can administer the module.
    */
   public static function permissionAllowed($account): bool {
-    return is_object($account) && method_exists($account, 'hasPermission') && $account->hasPermission('administer aiworker_chat');
+    return is_object($account) && method_exists($account, 'hasPermission') && $account->hasPermission('administer needtome_ai_chat');
   }
 
   /**
@@ -189,7 +189,7 @@ class AdminController {
     );
     $adminResponse = $this->adminApi->handle($adminRequest);
     if (self::shouldInvalidateWidgetRoute($route)) {
-      $this->cacheTagsInvalidator->invalidateTags(['aiworker_chat_widget']);
+      $this->cacheTagsInvalidator->invalidateTags(['needtome_ai_chat_widget']);
     }
     $headers = array_replace($adminResponse->headers(), [
       'Cache-Control' => 'no-store, private, max-age=0',

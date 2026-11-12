@@ -1,10 +1,10 @@
 <?php
 
-namespace Drupal\aiworker_chat;
+namespace Drupal\needtome_ai_chat;
 
-use Drupal\aiworker_chat\Common\Host;
-use Drupal\aiworker_chat\Common\OAuth;
-use Drupal\aiworker_chat\Common\Uninstaller;
+use Drupal\needtome_ai_chat\Common\Host;
+use Drupal\needtome_ai_chat\Common\OAuth;
+use Drupal\needtome_ai_chat\Common\Uninstaller;
 
 /**
  * Uninstall effects split into a small unit-testable routine.
@@ -18,8 +18,8 @@ class DrupalUninstall {
     (new Uninstaller())->run($host, $oauth);
     $keyValue->deleteAll();
     $queue->deleteQueue();
-    $state->delete('aiworker_chat.last_enqueued');
-    $cacheTags->invalidateTags(['aiworker_chat', 'aiworker_chat_widget']);
+    $state->delete('needtome_ai_chat.last_enqueued');
+    $cacheTags->invalidateTags(['needtome_ai_chat', 'needtome_ai_chat_widget']);
   }
 
 }

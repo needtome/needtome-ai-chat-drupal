@@ -1,6 +1,6 @@
-aiworker_chat.settings:
+needtome_ai_chat.settings:
   type: config_object
-  label: 'AI Worker Chat settings'
+  label: 'NeedToMe AI Chat settings'
   mapping:
     base:
       type: string

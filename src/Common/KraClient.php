@@ -2,7 +2,7 @@
 // phpcs:ignoreFile -- Generated from the shared php-common source.
 // Part of NeedToMe AI Chat php-common. Edit integrations/php-common/src, then run node integrations/php-common/sync.mjs.
 
-namespace Drupal\aiworker_chat\Common;
+namespace Drupal\needtome_ai_chat\Common;
 
 class KraClient
 {
