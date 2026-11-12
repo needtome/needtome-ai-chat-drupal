@@ -1,0 +1,109 @@
+aiworker_chat.admin:
+  path: '/admin/config/services/aiworker-chat'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::index'
+    _title: 'AI Worker Chat'
+  requirements:
+    _permission: 'administer aiworker_chat'
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.settings:
+  path: '/admin/config/services/aiworker-chat/settings'
+  defaults:
+    _form: '\Drupal\aiworker_chat\Form\SettingsForm'
+    _title: 'AI Worker Chat settings'
+  requirements:
+    _permission: 'administer aiworker_chat'
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.get:
+  path: '/admin/config/services/aiworker-chat/api/{route}'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    route: 'state|connect'
+  methods: [GET]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.callback:
+  path: '/admin/config/services/aichat/api/callback'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+    route: 'callback'
+  requirements:
+    _permission: 'administer aiworker_chat'
+  methods: [GET]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.post:
+  path: '/admin/config/services/aiworker-chat/api/{route}'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    _csrf_request_header_token: 'TRUE'
+    route: 'batch|api|icon|disconnect|link|settings|sync'
+  methods: [POST]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.chats_add:
+  path: '/admin/config/services/aiworker-chat/api/chats/add'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+    route: 'chats/add'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.chats_remove:
+  path: '/admin/config/services/aiworker-chat/api/chats/remove'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+    route: 'chats/remove'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.key:
+  path: '/admin/config/services/aiworker-chat/api/key'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::api'
+    route: 'key'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE
+
+aiworker_chat.api.sync_status:
+  path: '/admin/config/services/aiworker-chat/api/sync/status'
+  defaults:
+    _controller: 'Drupal\aiworker_chat\Controller\AdminController::syncStatus'
+  requirements:
+    _permission: 'administer aiworker_chat'
+    _csrf_request_header_token: 'TRUE'
+  methods: [GET]
+  options:
+    _admin_route: TRUE
+    _no_cache: TRUE

@@ -1,0 +1,4 @@
+administer aiworker_chat:
+  title: 'Administer AI Worker Chat'
+  description: 'Configure the AI Worker connection, widget, and knowledge sync.'
+  restrict access: true

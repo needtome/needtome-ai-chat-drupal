@@ -1,0 +1,6 @@
+aiworker_chat.admin:
+  title: 'AI Worker Chat'
+  description: 'Connect and configure the AI Worker chat.'
+  route_name: aiworker_chat.admin
+  parent: system.admin_config_services
+  weight: 50

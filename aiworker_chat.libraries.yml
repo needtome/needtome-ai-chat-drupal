@@ -1,0 +1,14 @@
+admin:
+  css:
+    theme:
+      assets/aiwc-admin.css: {}
+  js:
+    assets/aiwc-admin.js: { minified: true }
+    assets/aiwc-mount.js: { minified: true }
+  dependencies:
+    - core/drupal
+    - core/once
+
+loader:
+  js:
+    assets/aiwc-loader.js: { minified: true, attributes: { defer: true } }

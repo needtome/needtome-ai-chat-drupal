@@ -1,0 +1,7 @@
+name: AI Worker Chat
+type: module
+description: Connects this Drupal site to the AI Worker chat and knowledge base.
+package: Web services
+core_version_requirement: ^10.3 || ^11
+configure: aiworker_chat.settings
+interface translation project: aiworker_chat
