@@ -31,9 +31,6 @@ module**. Alternatively, extract the `aiworker_chat` directory into
 Drush. See Drupal's guide to [installing modules](https://www.drupal.org/docs/extending-drupal/installing-modules)
 for other supported installation methods.
 
-For a site that still has the former locally named `aichat` module, follow the
-one-time instructions in [MIGRATION.md](MIGRATION.md) before removing its files.
-
 ## Configuration
 
 Open **Configuration → Web services → AI Worker Chat** and select **Connect**.
