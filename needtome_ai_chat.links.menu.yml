@@ -1,6 +1,6 @@
 needtome_ai_chat.admin:
-  title: 'NeedToMe AI Chat'
-  description: 'Connect and configure the NeedToMe AI Chat.'
+  title: "NeedToMe AI Chat"
+  description: "Connect and configure the NeedToMe AI Chat."
   route_name: needtome_ai_chat.admin
   parent: system.admin_config_services
   weight: 50

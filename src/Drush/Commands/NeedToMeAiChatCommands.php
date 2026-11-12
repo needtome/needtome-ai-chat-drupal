@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class NeedToMeAiChatCommands extends DrushCommands {
 
-  public function __construct(private readonly DrupalHost $host, private readonly SyncEngine $syncEngine) {
+  final public function __construct(private readonly DrupalHost $host, private readonly SyncEngine $syncEngine) {
     parent::__construct();
   }
 

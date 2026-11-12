@@ -6,15 +6,18 @@ Connect a Drupal site to an AI Worker web chat and synchronize public content
 with its knowledge base. The module includes its administration interface and
 does not load executable administration code from a remote server.
 
-For project information, visit the [Drupal.org project page](https://www.drupal.org/project/needtome_ai_chat)
-or report a problem in the [issue queue](https://www.drupal.org/project/issues/needtome_ai_chat).
+For project information, visit the
+[Drupal.org project page](https://www.drupal.org/project/needtome_ai_chat) or
+report a problem in the
+[issue queue](https://www.drupal.org/project/issues/needtome_ai_chat).
 
 ## Requirements
 
 - Drupal 10.3 or Drupal 11.
 - PHP 8.1 or newer, with cURL, JSON, DOM, and OpenSSL or sodium enabled.
 - Drush 12 or 13 for command-line knowledge synchronization.
-- The Drupal Commerce Product module is optional and is only needed to sync products.
+- The Drupal Commerce Product module is optional and is only needed to sync
+  products.
 
 ## Installation
 
@@ -25,15 +28,17 @@ composer require drupal/needtome_ai_chat
 drush en needtome_ai_chat -y
 ```
 
-You can also download the module ZIP and install it from **Extend → Install new
+You can also download the module ZIP and install it from **Extend → Install
 module**. Alternatively, extract the `needtome_ai_chat` directory into
 `web/modules/custom/needtome_ai_chat`, then enable it from **Extend** or with
-Drush. See Drupal's guide to [installing modules](https://www.drupal.org/docs/extending-drupal/installing-modules)
-for other supported installation methods.
+Drush. See Drupal's guide to
+[installing modules][drupal-module-guide] for other supported installation
+methods.
 
 ## Configuration
 
-Open **Configuration → Web services → NeedToMe AI Chat** and select **Connect**.
+Open **Configuration → Web services → NeedToMe AI Chat** and select
+**Connect**.
 Authorize the Drupal site in AI Worker. If the account has more than one chat,
 select the chat to use. The public widget remains disabled until an
 administrator enables **Show the chat on the site's public pages**.
@@ -58,7 +63,8 @@ same-origin API. OAuth uses PKCE, and refresh tokens are encrypted with the
 Drupal site hash salt. Uninstalling the module revokes the OAuth token where
 possible and removes its stored settings and queued work.
 
-Interface translations are provided through [localize.drupal.org](https://localize.drupal.org/).
+Interface translations are provided through
+[localize.drupal.org](https://localize.drupal.org/).
 The project does not ship `.po` files.
 
 This project is licensed under the GNU General Public License, version 2 or any
@@ -67,3 +73,6 @@ later version. See [LICENSE.txt](LICENSE.txt).
 ## Maintainers
 
 - [AI Worker team](https://kra.name/integrations/)
+
+[drupal-module-guide]:
+  https://www.drupal.org/docs/extending-drupal/installing-modules

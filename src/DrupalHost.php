@@ -9,6 +9,9 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\StatementInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -76,7 +79,7 @@ class DrupalHost extends AbstractHost {
    * Returns the adapter version.
    */
   public function version(): string {
-    return '1.0.0';
+    return '1.0.1';
   }
 
   /**
@@ -324,17 +327,13 @@ class DrupalHost extends AbstractHost {
         }
         $translation = $node->getTranslation($langcode);
         try {
-          $switched = FALSE;
           $this->accountSwitcher->switchTo($anonymous);
-          $switched = TRUE;
           try {
             $render = $this->entityTypeManager->getViewBuilder('node')->view($translation, 'full', $langcode);
             $html = (string) $this->renderer->renderInIsolation($render);
           }
           finally {
-            if ($switched) {
-              $this->accountSwitcher->switchBack();
-            }
+            $this->accountSwitcher->switchBack();
           }
           if ($converter->isNoIndex($html)) {
             $this->exportOmitted('pages', 'node:' . $node->id() . ':' . $langcode);
@@ -405,7 +404,7 @@ class DrupalHost extends AbstractHost {
       if ($bundles) {
         $query->condition('type', $bundles, 'IN');
       }
-      $records = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      $records = $this->fetchAssociativeRows($query->execute());
     }
     catch (\Throwable) {
       $this->exportFailed('pages', 'query', 'query_failed');
@@ -451,7 +450,8 @@ class DrupalHost extends AbstractHost {
       $records = $this->database->select('node_field_data', 'n')
         ->fields('n', ['nid', 'langcode', 'title', 'changed', 'status', 'type'])
         ->condition('nid', $nids, 'IN')->condition('status', 1)->orderBy('nid')->orderBy('langcode')
-        ->execute()->fetchAll(\PDO::FETCH_ASSOC);
+        ->execute();
+      $records = $this->fetchAssociativeRows($records);
     }
     catch (\Throwable) {
       $this->exportFailed('pages', 'query', 'query_failed');
@@ -562,7 +562,8 @@ class DrupalHost extends AbstractHost {
     $paths = array_map(static fn ($nid) => '/node/' . (int) $nid, $nids);
     $records = $this->database->select('path_alias', 'p')
       ->fields('p', ['path', 'langcode', 'alias', 'status', 'id'])
-      ->condition('path', $paths, 'IN')->condition('status', 1)->orderBy('id')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      ->condition('path', $paths, 'IN')->condition('status', 1)->orderBy('id')->execute();
+    $records = $this->fetchAssociativeRows($records);
     $aliases = [];
     foreach ($records as $record) {
       if (preg_match('#^/node/(\d+)$#', (string) $record['path'], $match)) {
@@ -595,7 +596,7 @@ class DrupalHost extends AbstractHost {
         if ($database->schema()->fieldExists($table, 'target_revision_id')) {
           $columns[] = 'target_revision_id';
         }
-        $rows = $database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $nids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $this->fetchAssociativeRows($database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $nids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute());
         $targetType = (string) $definition->getSetting('target_type');
         $entityType = $this->entityTypeManager->getDefinition($targetType, FALSE);
         $baseTable = $entityType ? $entityType->getDataTable() ?: $entityType->getBaseTable() : NULL;
@@ -676,16 +677,19 @@ class DrupalHost extends AbstractHost {
       $productRows = $database->select('commerce_product_field_data', 'p')
         ->fields('p', ['product_id', 'langcode', 'title', 'changed', 'status', 'type', 'default_langcode'])
         ->condition('product_id', $ids, 'IN')->condition('status', 1)->orderBy('product_id')->orderBy('langcode')
-        ->execute()->fetchAll(\PDO::FETCH_ASSOC);
+        ->execute();
+      $productRows = $this->fetchAssociativeRows($productRows);
       $links = $database->select('commerce_product__variations', 'v')
         ->fields('v', ['entity_id', 'langcode', 'delta', 'variations_target_id'])
-        ->condition('entity_id', $ids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+        ->condition('entity_id', $ids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute();
+      $links = $this->fetchAssociativeRows($links);
       $variationIds = array_values(array_unique(array_map(static fn ($row) => (int) $row['variations_target_id'], $links)));
       $variations = [];
       if ($variationIds) {
         $variationRows = $database->select('commerce_product_variation_field_data', 'v')
           ->fields('v', ['variation_id', 'sku', 'price_number', 'price_currency_code', 'status', 'changed'])
-          ->condition('variation_id', $variationIds, 'IN')->orderBy('variation_id')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+          ->condition('variation_id', $variationIds, 'IN')->orderBy('variation_id')->execute();
+        $variationRows = $this->fetchAssociativeRows($variationRows);
         foreach ($variationRows as $row) {
           $variations[(int) $row['variation_id']] = $row;
         }
@@ -752,7 +756,8 @@ class DrupalHost extends AbstractHost {
     $paths = array_map(static fn ($id) => '/product/' . (int) $id, $productIds);
     $records = $database->select('path_alias', 'p')
       ->fields('p', ['path', 'langcode', 'alias', 'status', 'id'])
-      ->condition('path', $paths, 'IN')->condition('status', 1)->orderBy('id')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      ->condition('path', $paths, 'IN')->condition('status', 1)->orderBy('id')->execute();
+    $records = $this->fetchAssociativeRows($records);
     $aliases = [];
     foreach ($records as $record) {
       if (preg_match('#^/product/(\d+)$#', (string) $record['path'], $match)) {
@@ -785,7 +790,7 @@ class DrupalHost extends AbstractHost {
         if ($database->schema()->fieldExists($table, 'target_revision_id')) {
           $columns[] = 'target_revision_id';
         }
-        $rows = $database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $productIds, 'IN')->orderBy('entity_id')->orderBy('delta')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $this->fetchAssociativeRows($database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $productIds, 'IN')->orderBy('entity_id')->orderBy('delta')->execute());
         $targetType = (string) $definition->getSetting('target_type');
         $entityType = $this->entityTypeManager->getDefinition($targetType, FALSE);
         $baseTable = $entityType ? ($entityType->getDataTable() ?: $entityType->getBaseTable()) : NULL;
@@ -847,11 +852,17 @@ class DrupalHost extends AbstractHost {
     $rows = [];
     $converter = new HtmlToText();
     foreach ($storage->loadMultiple($ids) as $product) {
+      if (!$product instanceof ContentEntityInterface || !method_exists($product, 'getVariations')) {
+        continue;
+      }
       foreach ($product->getTranslationLanguages() as $langcode => $language) {
         if (!$product->hasTranslation($langcode)) {
           continue;
         }
         $translation = $product->getTranslation($langcode);
+        if (!$translation instanceof EntityChangedInterface || !method_exists($translation, 'getVariations')) {
+          continue;
+        }
         if (method_exists($translation, 'isPublished') && !$translation->isPublished()) {
           continue;
         }
@@ -979,6 +990,16 @@ class DrupalHost extends AbstractHost {
       throw new \RuntimeException('The configured Drupal site URL must be an absolute HTTP or HTTPS URL without credentials, query, or fragment.');
     }
     return rtrim($url, '/');
+  }
+
+  /**
+   * Converts Drupal's default query result objects to associative rows.
+   *
+   * @return array<int, array<string, mixed>>
+   *   The result rows.
+   */
+  private function fetchAssociativeRows(StatementInterface $statement): array {
+    return array_map(static fn ($row): array => (array) $row, $statement->fetchAll());
   }
 
   /**

@@ -1,0 +1,4 @@
+# Admin UI and loader are built from shared-admin-ui sources.
+assets/aiwc-admin.js
+assets/aiwc-loader.js
+assets/aiwc-mount.js

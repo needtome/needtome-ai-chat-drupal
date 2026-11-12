@@ -2,54 +2,78 @@ services:
   needtome_ai_chat.host:
     class: Drupal\needtome_ai_chat\DrupalHost
     arguments:
-      - '@config.factory'
-      - '@keyvalue'
-      - '@cache.default'
-      - '@cache_tags.invalidator'
-      - '@lock'
-      - '@request_stack'
-      - '@current_user'
-      - '@entity_type.manager'
-      - '@account_switcher'
-      - '@renderer'
-      - '@language_manager'
-      - '@module_handler'
-      - '@database'
-      - '@queue'
-      - '@entity_field.manager'
+      - "@config.factory"
+      - "@keyvalue"
+      - "@cache.default"
+      - "@cache_tags.invalidator"
+      - "@lock"
+      - "@request_stack"
+      - "@current_user"
+      - "@entity_type.manager"
+      - "@account_switcher"
+      - "@renderer"
+      - "@language_manager"
+      - "@module_handler"
+      - "@database"
+      - "@queue"
+      - "@entity_field.manager"
   needtome_ai_chat.http:
     class: Drupal\needtome_ai_chat\Common\CurlHttp
-    arguments: ['drupal']
+    arguments: ["drupal"]
   needtome_ai_chat.token_crypto:
     class: Drupal\needtome_ai_chat\Common\TokenCrypto
-    factory: ['@needtome_ai_chat.host', 'createTokenCrypto']
+    factory: ["@needtome_ai_chat.host", "createTokenCrypto"]
   needtome_ai_chat.oauth:
     class: Drupal\needtome_ai_chat\Common\OAuth
-    arguments: ['@needtome_ai_chat.host', '@needtome_ai_chat.http', '@needtome_ai_chat.token_crypto']
+    arguments:
+      [
+        "@needtome_ai_chat.host",
+        "@needtome_ai_chat.http",
+        "@needtome_ai_chat.token_crypto",
+      ]
   needtome_ai_chat.kra_client:
     class: Drupal\needtome_ai_chat\Common\KraClient
-    arguments: ['@needtome_ai_chat.host', '@needtome_ai_chat.http', '@needtome_ai_chat.oauth']
+    arguments:
+      [
+        "@needtome_ai_chat.host",
+        "@needtome_ai_chat.http",
+        "@needtome_ai_chat.oauth",
+      ]
   needtome_ai_chat.proxy_rules:
     class: Drupal\needtome_ai_chat\Common\ProxyRules
   needtome_ai_chat.rate_limiter:
     class: Drupal\needtome_ai_chat\Common\RateLimiter
-    arguments: ['@needtome_ai_chat.host']
+    arguments: ["@needtome_ai_chat.host"]
   needtome_ai_chat.sync_engine:
     class: Drupal\needtome_ai_chat\Common\SyncEngine
-    arguments: ['@needtome_ai_chat.host', '@needtome_ai_chat.kra_client', '@needtome_ai_chat.batcher', '@needtome_ai_chat.sleeper']
+    arguments:
+      [
+        "@needtome_ai_chat.host",
+        "@needtome_ai_chat.kra_client",
+        "@needtome_ai_chat.batcher",
+        "@needtome_ai_chat.sleeper",
+      ]
   needtome_ai_chat.batcher:
     class: Drupal\needtome_ai_chat\Common\Batcher
   needtome_ai_chat.sleeper:
     class: Drupal\needtome_ai_chat\Common\Sleeper
   needtome_ai_chat.admin_api:
     class: Drupal\needtome_ai_chat\Common\AdminApi
-    arguments: ['@needtome_ai_chat.host', '@needtome_ai_chat.oauth', '@needtome_ai_chat.kra_client', '@needtome_ai_chat.sync_engine', '@needtome_ai_chat.proxy_rules', '@needtome_ai_chat.rate_limiter']
+    arguments:
+      [
+        "@needtome_ai_chat.host",
+        "@needtome_ai_chat.oauth",
+        "@needtome_ai_chat.kra_client",
+        "@needtome_ai_chat.sync_engine",
+        "@needtome_ai_chat.proxy_rules",
+        "@needtome_ai_chat.rate_limiter",
+      ]
   Drupal\needtome_ai_chat\Controller\AdminController:
     arguments:
-      - '@needtome_ai_chat.admin_api'
-      - '@needtome_ai_chat.host'
-      - '@csrf_token'
-      - '@current_user'
-      - '@request_stack'
-      - '@cache_tags.invalidator'
-      - '@string_translation'
+      - "@needtome_ai_chat.admin_api"
+      - "@needtome_ai_chat.host"
+      - "@csrf_token"
+      - "@current_user"
+      - "@request_stack"
+      - "@cache_tags.invalidator"
+      - "@string_translation"

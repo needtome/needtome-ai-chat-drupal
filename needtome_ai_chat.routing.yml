@@ -1,108 +1,108 @@
 needtome_ai_chat.admin:
-  path: '/admin/config/services/aiworker-chat'
+  path: "/admin/config/services/aiworker-chat"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::index'
-    _title: 'NeedToMe AI Chat'
+    _title: "NeedToMe AI Chat"
   requirements:
-    _permission: 'administer needtome_ai_chat'
+    _permission: "administer needtome_ai_chat"
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.settings:
-  path: '/admin/config/services/aiworker-chat/settings'
+  path: "/admin/config/services/aiworker-chat/settings"
   defaults:
     _form: '\Drupal\needtome_ai_chat\Form\SettingsForm'
-    _title: 'NeedToMe AI Chat settings'
+    _title: "NeedToMe AI Chat settings"
   requirements:
-    _permission: 'administer needtome_ai_chat'
+    _permission: "administer needtome_ai_chat"
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.get:
-  path: '/admin/config/services/aiworker-chat/api/{route}'
+  path: "/admin/config/services/aiworker-chat/api/{route}"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    route: 'state|connect'
+    _permission: "administer needtome_ai_chat"
+    route: "state|connect"
   methods: [GET]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.callback:
-  path: '/admin/config/services/aichat/api/callback'
+  path: "/admin/config/services/aichat/api/callback"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
-    route: 'callback'
+    route: "callback"
   requirements:
-    _permission: 'administer needtome_ai_chat'
+    _permission: "administer needtome_ai_chat"
   methods: [GET]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.post:
-  path: '/admin/config/services/aiworker-chat/api/{route}'
+  path: "/admin/config/services/aiworker-chat/api/{route}"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    _csrf_request_header_token: 'TRUE'
-    route: 'batch|api|icon|disconnect|link|settings|sync'
+    _permission: "administer needtome_ai_chat"
+    _csrf_request_header_token: "TRUE"
+    route: "batch|api|icon|disconnect|link|settings|sync"
   methods: [POST]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.chats_add:
-  path: '/admin/config/services/aiworker-chat/api/chats/add'
+  path: "/admin/config/services/aiworker-chat/api/chats/add"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
-    route: 'chats/add'
+    route: "chats/add"
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    _csrf_request_header_token: 'TRUE'
+    _permission: "administer needtome_ai_chat"
+    _csrf_request_header_token: "TRUE"
   methods: [POST]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.chats_remove:
-  path: '/admin/config/services/aiworker-chat/api/chats/remove'
+  path: "/admin/config/services/aiworker-chat/api/chats/remove"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
-    route: 'chats/remove'
+    route: "chats/remove"
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    _csrf_request_header_token: 'TRUE'
+    _permission: "administer needtome_ai_chat"
+    _csrf_request_header_token: "TRUE"
   methods: [POST]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.key:
-  path: '/admin/config/services/aiworker-chat/api/key'
+  path: "/admin/config/services/aiworker-chat/api/key"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::api'
-    route: 'key'
+    route: "key"
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    _csrf_request_header_token: 'TRUE'
+    _permission: "administer needtome_ai_chat"
+    _csrf_request_header_token: "TRUE"
   methods: [POST]
   options:
     _admin_route: TRUE
     _no_cache: TRUE
 
 needtome_ai_chat.api.sync_status:
-  path: '/admin/config/services/aiworker-chat/api/sync/status'
+  path: "/admin/config/services/aiworker-chat/api/sync/status"
   defaults:
     _controller: 'Drupal\needtome_ai_chat\Controller\AdminController::syncStatus'
   requirements:
-    _permission: 'administer needtome_ai_chat'
-    _csrf_request_header_token: 'TRUE'
+    _permission: "administer needtome_ai_chat"
+    _csrf_request_header_token: "TRUE"
   methods: [GET]
   options:
     _admin_route: TRUE

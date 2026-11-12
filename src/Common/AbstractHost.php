@@ -119,18 +119,33 @@ abstract class AbstractHost implements Host
     const DEFAULT_BASE = 'https://kra.name/app';
 
     /**
-     * Returns a safe AI Worker base URL: https (http only for localhost / 127.0.0.1 / [::1]), no credentials,
-     * no query or fragment, no trailing slash. Anything else falls back to the production base.
+     * Returns a safe AI Worker base URL: https (http only for localhost / 127.0.0.1 / [::1]), a valid hostname or IP,
+     * no credentials, query, fragment, or unsafe characters, and no trailing slash. Anything else falls back to the production base.
      */
     public static function normalizeBase(?string $base): string
     {
-        $base = trim((string) $base);
-        $parts = $base === '' ? false : parse_url($base);
+        $base = (string) $base;
+        if (preg_match('/[\x00-\x1f\x7f"<>\\\\]/', $base)) {
+            return self::DEFAULT_BASE;
+        }
+        $base = trim($base);
+        try {
+            $parts = $base === '' ? false : parse_url($base);
+        } catch (\Throwable $exception) {
+            return self::DEFAULT_BASE;
+        }
         if (!is_array($parts) || !isset($parts['scheme'], $parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
             return self::DEFAULT_BASE;
         }
         $scheme = strtolower($parts['scheme']);
-        $host = strtolower($parts['host']);
+        $host = strtolower((string) $parts['host']);
+        if (!self::isValidBaseHost($host)) {
+            return self::DEFAULT_BASE;
+        }
+        $port = isset($parts['port']) ? (int) $parts['port'] : null;
+        if ($port !== null && ($port < 1 || $port > 65535)) {
+            return self::DEFAULT_BASE;
+        }
         $local = in_array($host, array('localhost', '127.0.0.1', '[::1]', '::1'), true);
         if ($scheme !== 'https' && !($scheme === 'http' && $local)) {
             return self::DEFAULT_BASE;
@@ -139,7 +154,34 @@ abstract class AbstractHost implements Host
         if ($path !== '' && !preg_match('#^(/[A-Za-z0-9._~-]+)+$#', $path)) {
             return self::DEFAULT_BASE;
         }
-        return $scheme.'://'.$host.(isset($parts['port']) ? ':'.(int) $parts['port'] : '').$path;
+        return $scheme.'://'.$host.($port !== null ? ':'.$port : '').$path;
+    }
+
+    private static function isValidBaseHost(string $host): bool
+    {
+        if ($host === '') {
+            return false;
+        }
+        if ($host[0] === '[' && substr($host, -1) === ']') {
+            return filter_var(substr($host, 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+        }
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            return true;
+        }
+        // Numeric dotted forms that are not valid IPv4 addresses have ambiguous resolver behavior.
+        if (preg_match('/^[0-9.]+$/D', $host) || strlen($host) > 254) {
+            return false;
+        }
+        $hostname = substr($host, -1) === '.' ? substr($host, 0, -1) : $host;
+        if ($hostname === '' || substr($hostname, -1) === '.' || strlen($hostname) > 253) {
+            return false;
+        }
+        foreach (explode('.', $hostname) as $label) {
+            if (strlen($label) > 63 || !preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/D', $label)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static function normalizeLanguage(string $locale): string

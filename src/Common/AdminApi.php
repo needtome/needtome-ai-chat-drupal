@@ -101,7 +101,6 @@ class AdminApi
             case 'chats/remove': return $this->removeChat((string) $requestedChat);
             case 'key': return $this->saveKey($request, (string) $requestedChat);
         }
-        return $this->json(array('error' => 'not_found'), 404);
     }
 
     public function mountConfig(string $endpoint, string $csrfHeader, string $csrfToken): array
@@ -485,9 +484,11 @@ class AdminApi
         $name = $other ? trim((string) $other->settingGet('chat_name', '')) : '';
         if ($name === '') $name = $otherId;
         $messages = array(
+            // cspell:disable
             'ru' => 'Этот чат уже подключён на другой вкладке сайта. Подтвердите перенос, чтобы закрыть ту вкладку.',
             'en' => 'This chat is already connected on another site tab. Confirm the move to close that tab.',
             'uk' => 'Цей чат уже підключено на іншій вкладці сайту. Підтвердьте перенесення, щоб закрити ту вкладку.',
+            // cspell:enable
         );
         $language = $this->siteHost->adminLanguage();
         return $this->json(array(
@@ -786,7 +787,7 @@ class AdminApi
             } else {
                 $site = rtrim($this->host->siteHome(), '/');
                 $chatContext = array('site' => $site, 'lang' => $this->host->adminLanguage());
-                if ((int) $chatId > 0) $chatContext['chat_id'] = (int) $chatId;
+                $chatContext['chat_id'] = (int) $chatId;
                 $status = $this->kra->siteKnowledge($key, 'status', 'GET', $chatContext);
                 $products = null;
                 $options = $this->host->settingGet('sync_options', array());

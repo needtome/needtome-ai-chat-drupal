@@ -357,7 +357,7 @@ class SyncEngine
                 }
                 return array_merge(array('ok' => true, 'dry_run' => true, 'batches' => $idsByBatch), $plan);
             }
-            if (!is_string($key) || !preg_match('/^wk_[A-Za-z0-9]{24}$/', $key)) {
+            if (!preg_match('/^wk_[A-Za-z0-9]{24}$/', $key)) {
                 return array_merge(array('ok' => false, 'error' => 'not_linked'), $plan);
             }
             $chatContext = $chatId > 0 ? array('chat_id' => $chatId) : array();
@@ -550,7 +550,7 @@ class SyncEngine
             $state = $this->host->settingGet('sync_state', array());
             $state = is_array($state) ? $state : array();
             $state = array_replace($state, array('last_run' => gmdate('c'), 'next_run' => null, 'running' => false, 'error' => null));
-            if ($singleSlice && is_array($manualRequest)) {
+            if ($singleSlice) {
                 $state['manual_request'] = $manualRequest;
                 $state['manual_request']['slice_signature'] = null;
                 $state['manual_request']['slice_cursor'] = null;
@@ -935,8 +935,8 @@ class SyncEngine
     private function saveOmissions(array $pages, array $products): void
     {
         $this->host->settingPut('sync_omitted', array(
-            'pages' => array_values(array_map('strval', array_keys($pages))),
-            'products' => array_values(array_map('strval', array_keys($products))),
+            'pages' => array_map('strval', array_keys($pages)),
+            'products' => array_map('strval', array_keys($products)),
         ));
     }
 
@@ -982,7 +982,7 @@ class SyncEngine
         foreach ($hashes as $id => $hash) {
             $storedHashes[$id] = $hash;
             $storedCounts[$id] = (int) ($counts[$id] ?? 1);
-            if (isset($markers[$id]) && $markers[$id] !== null) {
+            if (isset($markers[$id])) {
                 $storedMarkers[$id] = (string) $markers[$id];
             } else {
                 unset($storedMarkers[$id]);
@@ -1140,8 +1140,4 @@ class SyncEngine
         return array_values(array_unique($ids));
     }
 
-    private function remaining(float $started, int $limit): int
-    {
-        return max(0, $limit - (int) (microtime(true) - $started));
-    }
 }

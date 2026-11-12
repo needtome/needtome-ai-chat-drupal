@@ -1,0 +1,11 @@
+include:
+  - project: $_GITLAB_TEMPLATES_REPO
+    ref: $_GITLAB_TEMPLATES_REF
+    file:
+      - "/includes/include.drupalci.main.yml"
+      - "/includes/include.drupalci.variables.yml"
+      - "/includes/include.drupalci.workflows.yml"
+
+variables:
+  _CSPELL_IGNORE_PATHS: "assets/aiwc-admin.js,assets/aiwc-admin.css,assets/aiwc-loader.js,assets/aiwc-mount.js"
+  _STYLELINT_EXTRA: "--allow-empty-input"

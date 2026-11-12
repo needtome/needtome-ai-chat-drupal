@@ -36,7 +36,7 @@ foreach ($checks as $command) {
   }
   if ($status !== 0) {
     fwrite(STDERR, "Refusing to build because generated files are stale.\n");
-    exit($status ?: 1);
+    exit($status);
   }
 }
 
@@ -49,7 +49,7 @@ if (!is_dir($dist) && !mkdir($dist, 0775, TRUE) && !is_dir($dist)) {
   fwrite(STDERR, "Unable to create dist directory.\n");
   exit(1);
 }
-$version = '1.0.0';
+$version = '1.0.1';
 $target = $dist . '/needtome_ai_chat-' . $version . '.zip';
 $zip = new ZipArchive();
 if ($zip->open($target, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
@@ -67,7 +67,7 @@ foreach ($iterator as $file) {
   $path = $file->getPathname();
   $relative = substr($path, strlen($moduleRoot) + 1);
   // Ship the module and its PHPUnit tests (drupal.org convention); keep repo-only tooling out of the release.
-  if (str_starts_with($relative, 'dist/') || str_starts_with($relative, 'vendor/') || str_starts_with($relative, 'tests/sandbox/') || in_array($relative, ['build.php', 'tests/run.php', '.gitignore'], TRUE)
+  if (str_starts_with($relative, 'dist/') || str_starts_with($relative, 'vendor/') || str_starts_with($relative, 'tests/sandbox/') || in_array($relative, ['build.php', 'tests/run.php', '.gitignore', '.gitlab-ci.yml', '.cspell-project-words.txt'], TRUE)
     || str_contains($relative, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR) || basename($relative) === '.DS_Store') {
     continue;
   }

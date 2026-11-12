@@ -152,15 +152,11 @@ class CurlHttp implements Http
         $warning = null;
         set_error_handler(function ($severity, $message) use (&$warning) { $warning = $message; return true; });
         $previousSocketTimeout = ini_get('default_socket_timeout');
-        if ($previousSocketTimeout !== false) {
-            ini_set('default_socket_timeout', (string) $connectTimeout);
-        }
+        ini_set('default_socket_timeout', (string) $connectTimeout);
         try {
             $stream = fopen($url, 'rb', false, $context);
         } finally {
-            if ($previousSocketTimeout !== false) {
-                ini_set('default_socket_timeout', (string) $previousSocketTimeout);
-            }
+            ini_set('default_socket_timeout', (string) $previousSocketTimeout);
             restore_error_handler();
         }
         if ($stream === false) {
@@ -177,7 +173,7 @@ class CurlHttp implements Http
         fclose($stream);
         $status = 0;
         $responseHeaders = array();
-        $lines = isset($http_response_header) && is_array($http_response_header) ? $http_response_header : array();
+        $lines = $http_response_header;
         foreach ($lines as $line) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#i', $line, $match)) {
                 $status = (int) $match[1];

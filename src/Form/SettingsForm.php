@@ -15,9 +15,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SettingsForm extends ConfigFormBase {
 
-  public function __construct(
+  final public function __construct(
     ConfigFactoryInterface $config_factory,
-    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    protected readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     ?TypedConfigManagerInterface $typed_config_manager = NULL,
   ) {
     parent::__construct($config_factory, $typed_config_manager);

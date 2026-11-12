@@ -44,7 +44,7 @@ function needtome_ai_chat_page_attachments(array &$attachments): void {
     'defer' => TRUE,
     'data-aiworker-chat-options' => $json,
   ];
-  if ($container->get('module_handler')->moduleExists('csp') && $container->has('csp.nonce')) {
+  if ($container->get('module_handler')->moduleExists('csp')) {
     $nonce = $container->get('csp.nonce')->getValue();
     if (is_string($nonce) && $nonce !== '') {
       $attributes['nonce'] = $nonce;

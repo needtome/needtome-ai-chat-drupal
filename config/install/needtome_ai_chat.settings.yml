@@ -1,3 +1,3 @@
-base: 'https://kra.name/app'
-site_url: ''
+base: "https://kra.name/app"
+site_url: ""
 sync_interval: 86400

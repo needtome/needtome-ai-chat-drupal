@@ -49,6 +49,7 @@ class OAuth
 
     public function beginAuthorization(): string
     {
+        $base = rtrim($this->host->base(), '/');
         $metadata = $this->discover();
         $redirectUri = $this->host->callbackUrl();
         $client = $this->registerClient($metadata, $redirectUri);
@@ -58,6 +59,7 @@ class OAuth
             'verifier' => $verifier,
             'client_id' => $client['client_id'],
             'redirect_uri' => $redirectUri,
+            'base' => $base,
             'created_at' => time(),
         ));
         $endpoint = $this->endpoint($metadata, 'authorization_endpoint');
@@ -69,7 +71,7 @@ class OAuth
             'state' => $state,
             'code_challenge' => $this->pkce->challenge($verifier),
             'code_challenge_method' => 'S256',
-            'resource' => rtrim($this->host->base(), '/').'/api/mcp',
+            'resource' => $base.'/api/mcp',
         );
         return $endpoint.(strpos($endpoint, '?') === false ? '?' : '&').http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
@@ -85,6 +87,10 @@ class OAuth
         if (!is_array($pending) || (int) ($pending['created_at'] ?? 0) < time() - 600 || $code === '') {
             throw new OAuthException('OAuth state is invalid or expired.', 403);
         }
+        $base = $pending['base'] ?? null;
+        if (!is_string($base) || !hash_equals($base, rtrim($this->host->base(), '/'))) {
+            throw new OAuthException('The AI Worker base URL changed during authorization. Reconnect to continue.', 403);
+        }
         $metadata = $this->discover();
         try {
             $response = $this->http->send('POST', $this->endpoint($metadata, 'token_endpoint'), array(
@@ -94,7 +100,7 @@ class OAuth
                     'redirect_uri' => (string) $pending['redirect_uri'],
                     'client_id' => (string) $pending['client_id'],
                     'code_verifier' => (string) $pending['verifier'],
-                    'resource' => rtrim($this->host->base(), '/').'/api/mcp',
+                    'resource' => $base.'/api/mcp',
                 ),
                 'headers' => array('Accept' => 'application/json'), 'timeout' => 20, 'connect_timeout' => 10,
             ));
@@ -108,7 +114,7 @@ class OAuth
         $this->host->settingPut(self::CLIENT_KEY, array(
             'client_id' => (string) $pending['client_id'],
             'redirect_uri' => (string) $pending['redirect_uri'],
-            'base' => rtrim($this->host->base(), '/'),
+            'base' => $base,
         ));
         $this->saveTokenResponse($tokenResponse, (string) $pending['client_id']);
     }
@@ -120,7 +126,17 @@ class OAuth
             return null;
         }
         $tokens = $this->crypto->decrypt($encrypted);
-        return is_array($tokens) && !empty($tokens['access_token']) && !empty($tokens['refresh_token']) ? $tokens : null;
+        if (!is_array($tokens) || empty($tokens['access_token']) || empty($tokens['refresh_token'])) {
+            return null;
+        }
+        $client = $this->host->settingGet(self::CLIENT_KEY, array());
+        $clientBase = is_array($client) ? ($client['base'] ?? null) : null;
+        $tokenBase = array_key_exists('base', $tokens) ? $tokens['base'] : $clientBase;
+        if (!is_string($tokenBase) || !hash_equals($tokenBase, rtrim($this->host->base(), '/'))) {
+            return null;
+        }
+        unset($tokens['base']);
+        return $tokens;
     }
 
     public function refresh(?string $previousAccess = null): ?array
@@ -216,6 +232,7 @@ class OAuth
         if (($client['redirect_uri'] ?? null) === $redirectUri && ($client['base'] ?? null) === $base && !empty($client['client_id'])) {
             return $client;
         }
+        $this->preserveLegacyTokenBase($client);
         $endpoint = isset($metadata['registration_endpoint']) ? $this->endpoint($metadata, 'registration_endpoint') : rtrim($this->host->base(), '/').'/api/oauth/register';
         $this->validateEndpoint($endpoint);
         $payload = array(
@@ -252,6 +269,7 @@ class OAuth
             'refresh_token' => (string) ($response['refresh_token'] ?? ($old['refresh_token'] ?? '')),
             'expires_at' => time() + max(60, (int) ($response['expires_in'] ?? 3600)),
             'scope' => (string) ($response['scope'] ?? 'chat'),
+            'base' => rtrim($this->host->base(), '/'),
         );
         if ($tokens['refresh_token'] === '') {
             throw new OAuthException('AI Worker did not return a refresh token.', 502);
@@ -319,6 +337,33 @@ class OAuth
     private function forgetTokens(): void
     {
         $this->host->settingForget(self::TOKEN_KEY);
+    }
+
+    /**
+     * Legacy token records inherited their base from oauth_client. Pin that value inside the encrypted record before
+     * replacing the client registration, so starting a reconnect at another base cannot rebind the old credentials.
+     */
+    private function preserveLegacyTokenBase(array $client): void
+    {
+        $encrypted = $this->host->settingGet(self::TOKEN_KEY);
+        if (!is_string($encrypted) || empty($client['base']) || !is_string($client['base'])) {
+            return;
+        }
+        $tokens = $this->crypto->decrypt($encrypted);
+        if (!is_array($tokens) || isset($tokens['base'])) {
+            return;
+        }
+        $clientBase = rtrim($client['base'], '/');
+        if ($clientBase === '' || self::baseForTokenIsSafe($clientBase) === false) {
+            return;
+        }
+        $tokens['base'] = $clientBase;
+        $this->host->settingPut(self::TOKEN_KEY, $this->crypto->encrypt($tokens));
+    }
+
+    private static function baseForTokenIsSafe(string $base): bool
+    {
+        return AbstractHost::normalizeBase($base) === $base;
     }
 
     private function clearCaches(): void
