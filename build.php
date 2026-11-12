@@ -49,7 +49,7 @@ if (!is_dir($dist) && !mkdir($dist, 0775, TRUE) && !is_dir($dist)) {
   fwrite(STDERR, "Unable to create dist directory.\n");
   exit(1);
 }
-$version = '0.1.1';
+$version = '1.0.0';
 $target = $dist . '/aiworker_chat-' . $version . '.zip';
 $zip = new ZipArchive();
 if ($zip->open($target, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
@@ -71,7 +71,14 @@ foreach ($iterator as $file) {
     || str_contains($relative, DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR) || basename($relative) === '.DS_Store') {
     continue;
   }
-  $zip->addFile($path, 'aiworker_chat/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative));
+  $name = 'aiworker_chat/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
+  // The source info.yml has no version (drupal.org adds it when packaging); the ZIP for manual installs gets the same block,
+  // otherwise Extend shows no version.
+  if ($relative === 'aiworker_chat.info.yml') {
+    $zip->addFromString($name, rtrim((string) file_get_contents($path)) . "\n\n# Information added by the AI Worker packaging script\nversion: '" . $version . "'\n");
+    continue;
+  }
+  $zip->addFile($path, $name);
 }
 $zip->close();
 fwrite(STDOUT, "Built $target\n");
