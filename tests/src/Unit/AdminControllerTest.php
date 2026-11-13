@@ -32,7 +32,7 @@ class AdminControllerTest extends TestCase {
    * Tests permission checks and JSON request parsing.
    */
   public function testPermissionAndJsonBodyMapping(): void {
-    $account = new class {
+    $account = new class() {
 
       /**
        * Provides has permission for the test.

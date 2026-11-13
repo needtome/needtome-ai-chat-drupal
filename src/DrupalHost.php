@@ -79,7 +79,7 @@ class DrupalHost extends AbstractHost {
    * Returns the adapter version.
    */
   public function version(): string {
-    return '1.0.2';
+    return '1.0.3';
   }
 
   /**
@@ -714,8 +714,12 @@ class DrupalHost extends AbstractHost {
           'references_trustworthy' => $references[$productId]['trustworthy'] ?? TRUE,
         ];
         $result[$productId]['languages'][(string) $row['langcode']] = [
-          'langcode' => (string) $row['langcode'], 'title' => (string) $row['title'], 'changed' => (int) $row['changed'],
-          'status' => (int) $row['status'], 'type' => (string) $row['type'], 'default_langcode' => (int) $row['default_langcode'],
+          'langcode' => (string) $row['langcode'],
+          'title' => (string) $row['title'],
+          'changed' => (int) $row['changed'],
+          'status' => (int) $row['status'],
+          'type' => (string) $row['type'],
+          'default_langcode' => (int) $row['default_langcode'],
         ];
         $result[$productId]['variations'] = $row['variations'];
       }

@@ -17,7 +17,7 @@ class SettingsForm extends ConfigFormBase {
 
   final public function __construct(
     ConfigFactoryInterface $config_factory,
-    protected readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    protected CacheTagsInvalidatorInterface $cacheTagsInvalidator,
     ?TypedConfigManagerInterface $typed_config_manager = NULL,
   ) {
     parent::__construct($config_factory, $typed_config_manager);

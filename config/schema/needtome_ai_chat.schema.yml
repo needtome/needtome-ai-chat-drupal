@@ -1,13 +1,13 @@
 needtome_ai_chat.settings:
   type: config_object
-  label: "NeedToMe AI Chat settings"
+  label: 'NeedToMe AI Chat settings'
   mapping:
     base:
       type: string
-      label: "AI Worker base URL"
+      label: 'AI Worker base URL'
     site_url:
       type: string
-      label: "Site URL for Drush and cron"
+      label: 'Site URL for Drush and cron'
     sync_interval:
       type: integer
-      label: "Synchronization interval in seconds"
+      label: 'Synchronization interval in seconds'

@@ -16,7 +16,7 @@ class DrupalStorageTest extends TestCase {
    * Tests delegation to Drupal key-value and lock services.
    */
   public function testKeyValueAndLockServicesAreDelegated(): void {
-    $keyValue = new class {
+    $keyValue = new class() {
       /** The in-memory key-value data for this test double. */
       public array $values = [];
 
@@ -49,7 +49,7 @@ class DrupalStorageTest extends TestCase {
       }
 
     };
-    $lock = new class {
+    $lock = new class() {
       /** The lock operations recorded by this test double. */
       public array $calls = [];
 

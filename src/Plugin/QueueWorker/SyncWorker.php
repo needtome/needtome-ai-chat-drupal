@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 )]
 class SyncWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
-  final public function __construct(array $configuration, $plugin_id, $plugin_definition, protected readonly SyncEngine $syncEngine) {
+  final public function __construct(array $configuration, $plugin_id, $plugin_definition, protected SyncEngine $syncEngine) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
