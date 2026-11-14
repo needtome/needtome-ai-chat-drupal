@@ -7,7 +7,6 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
-use Drupal\needtome_ai_chat\Common\AbstractHost;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -49,17 +48,10 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
-   * Builds the AI Worker endpoint settings form.
+   * Builds the site URL settings form.
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('needtome_ai_chat.settings');
-    $form['base'] = [
-      '#type' => 'url',
-      '#title' => $this->t('AI Worker base URL'),
-      '#default_value' => $config->get('base') ?: AbstractHost::DEFAULT_BASE,
-      '#required' => TRUE,
-      '#description' => $this->t('Use an HTTPS URL. Plain HTTP is accepted only for localhost and 127.0.0.1 development servers.'),
-    ];
     $form['site_url'] = [
       '#type' => 'url',
       '#title' => $this->t('Site URL for Drush and cron'),
@@ -70,14 +62,10 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
-   * Validates the AI Worker endpoint and site URLs.
+   * Validates the site URL.
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
-    $base = trim((string) $form_state->getValue('base'));
-    if (AbstractHost::normalizeBase($base) !== rtrim($base, '/')) {
-      $form_state->setErrorByName('base', $this->t('Enter a valid HTTPS base URL, or an HTTP localhost URL for local development.'));
-    }
     $siteUrl = trim((string) $form_state->getValue('site_url'));
     if ($siteUrl !== '') {
       $parts = parse_url($siteUrl);
@@ -100,13 +88,12 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
-   * Saves the AI Worker endpoint and site URL settings.
+   * Saves the site URL setting without replacing the stored AI Worker base.
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     parent::submitForm($form, $form_state);
     $siteUrl = trim((string) $form_state->getValue('site_url'));
     $this->config('needtome_ai_chat.settings')
-      ->set('base', rtrim(trim((string) $form_state->getValue('base')), '/'))
       ->set('site_url', $siteUrl === '' ? '' : rtrim($siteUrl, '/'))
       ->save();
     $this->cacheTagsInvalidator->invalidateTags(['needtome_ai_chat', 'needtome_ai_chat_widget']);

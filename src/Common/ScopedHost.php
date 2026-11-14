@@ -54,7 +54,9 @@ class ScopedHost extends AbstractHost
     {
         if (!$this->registered()) return;
         $storageKey = $this->scopedKey($key) ? $this->storageKey($key) : $key;
-        if ($this->scopedKey($key) && !$this->registry->track($this->id, $storageKey)) return;
+        if ($this->scopedKey($key) && !$this->registry->track($this->id, $storageKey)) {
+            throw new \RuntimeException('Could not register chat setting for storage.');
+        }
         $this->inner->settingPut($storageKey, $value);
     }
 

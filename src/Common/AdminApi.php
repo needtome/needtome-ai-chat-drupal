@@ -103,10 +103,10 @@ class AdminApi
         }
     }
 
-    public function mountConfig(string $endpoint, string $csrfHeader, string $csrfToken): array
+    public function mountConfig(string $endpoint, string $csrfHeader, string $csrfToken, ?string $scheduleUrl = null): array
     {
         $base = rtrim($this->host->base(), '/');
-        return array(
+        $config = array(
             'endpoint' => $endpoint,
             'csrf' => array('header' => $csrfHeader, 'token' => $csrfToken),
             'lang' => $this->host->adminLanguage(),
@@ -115,6 +115,10 @@ class AdminApi
             'widgetBase' => $base,
             'panelBase' => $base.'/panel',
         );
+        if (is_string($scheduleUrl) && $scheduleUrl !== '') {
+            $config['scheduleUrl'] = $scheduleUrl;
+        }
+        return $config;
     }
 
     private function state(): array
@@ -171,6 +175,7 @@ class AdminApi
                 'pages' => array('enabled' => array_key_exists('enabled', $pages) ? (bool) $pages['enabled'] : true, 'sources' => $this->host->pageSources()),
                 'products' => array('enabled' => (bool) ($products['enabled'] ?? false), 'available' => $this->host->productsAvailable()),
                 'last_run' => $syncState['last_run'] ?? null,
+                'last_success' => $syncState['last_success'] ?? null,
                 'next_run' => $syncState['next_run'] ?? null,
                 'running' => (bool) ($syncState['running'] ?? false),
                 'error' => $syncState['error'] ?? null,
@@ -309,13 +314,15 @@ class AdminApi
         if ($path === null || !$this->rules->allows($method, $path)) {
             return $this->json(array('error' => 'not_allowed'), 403);
         }
-        $query = $this->proxyQuery(isset($input['query']) && is_array($input['query']) ? $input['query'] : array());
+        $assistant = $this->rules->isAssistantPath($path);
+        $query = $this->proxyQuery(isset($input['query']) && is_array($input['query']) ? $input['query'] : array(), $assistant);
         if ($query === null) {
             return $this->json(array('error' => 'not_allowed'), 403);
         }
         $body = isset($input['body']) && is_array($input['body']) ? $input['body'] : array();
-        if ($this->rules->isAssistantPath($path)) {
-            $body['chat_id'] = $query['chat_id'];
+        if ($assistant) {
+            if (isset($query['chat_id'])) $body['chat_id'] = $query['chat_id'];
+            else unset($body['chat_id']);
             if (!isset($body['lang'])) {
                 $body['lang'] = $query['lang'];
             }
@@ -805,11 +812,13 @@ class AdminApi
                 );
             }
             $this->host->cacheSet($cacheKey, $result, 15);
+            $this->indexScreenCache($cacheKey);
         }
         $result['sync_job'] = array('id' => $syncState['manual_job_id'] ?? null, 'status' => $syncState['manual_job_status'] ?? null,
             'next_run' => $syncState['manual_job_next_run'] ?? null, 'error' => $syncState['manual_job_error'] ?? null,
             'progress' => $syncState['manual_job_progress'] ?? null, 'result' => $syncState['manual_job_summary'] ?? null,
             'finished_at' => $syncState['manual_job_finished_at'] ?? null);
+        $result['last_success'] = $syncState['last_success'] ?? null;
         return $this->json($result);
     }
 
@@ -866,7 +875,6 @@ class AdminApi
             }
         }
         $this->host->cacheDelete($indexKey);
-        $this->host->cacheDelete('sync-status:'.sha1($this->host->siteHome().'|'.$this->host->settingGet('chat_id')));
     }
 
     private function requestLength(AdminRequest $request): int

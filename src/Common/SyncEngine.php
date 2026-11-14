@@ -9,25 +9,22 @@ class SyncEngine
     private $host;
     private $kra;
     private $batcher;
-    private $sleeper;
-
-    public function __construct(Host $host, KraClient $kra, Batcher $batcher, Sleeper $sleeper)
+    public function __construct(Host $host, KraClient $kra, Batcher $batcher)
     {
         $this->host = $host;
         $this->kra = $kra;
         $this->batcher = $batcher;
-        $this->sleeper = $sleeper;
     }
 
     /**
      * A platform cron/CLI run fans out over the current registry. A scoped instance is one explicit chat run;
      * errors and backoff in one chat never prevent the next chat from running.
      */
-    public function run(bool $pages = true, bool $products = false, bool $dryRun = false, bool $force = false, int $timeLimit = 100, string $passKind = 'daily'): array
+    public function run(bool $pages = true, bool $products = false, bool $dryRun = false, bool $force = false, string $passKind = 'daily'): array
     {
         if ($this->host instanceof ScopedHost) {
             if (!$this->host->registered()) return array('ok' => false, 'skipped' => true, 'reason' => 'unknown_chat');
-            return $this->runOne($pages, $products, $dryRun, $force, $timeLimit, $passKind);
+            return $this->runOne($pages, $products, $dryRun, $force, $passKind);
         }
         $registry = new ChatRegistry($this->host);
         $ids = $registry->ids();
@@ -36,7 +33,7 @@ class SyncEngine
             $scoped = $registry->scoped($id);
             if (!$scoped) continue;
             try {
-                $results[$id] = $this->forHost($scoped)->runOne($pages, $products, $dryRun, $force, $timeLimit, $passKind);
+                $results[$id] = $this->forHost($scoped)->runOne($pages, $products, $dryRun, $force, $passKind);
             } catch (\Throwable $exception) {
                 $results[$id] = array('ok' => false, 'error' => 'sync_failed');
             }
@@ -48,17 +45,17 @@ class SyncEngine
     }
 
     /** Consume one queued admin request from the adapter's native scheduler, otherwise run its ordinary sync. */
-    public function runScheduled(bool $pages = true, bool $products = false, int $timeLimit = 100, string $passKind = 'daily'): array
+    public function runScheduled(bool $pages = true, bool $products = false, string $passKind = 'daily'): array
     {
         if ($this->host instanceof ScopedHost) {
             if (!$this->host->registered()) return array('ok' => false, 'skipped' => true, 'reason' => 'unknown_chat');
-            return $this->runScheduledOne($pages, $products, $timeLimit, $passKind);
+            return $this->runScheduledOne($pages, $products, 100, $passKind);
         }
         $results = array();
         foreach ((new ChatRegistry($this->host))->ids() as $id) {
             $scoped = (new ChatRegistry($this->host))->scoped($id);
             if (!$scoped) continue;
-            try { $results[$id] = $this->forHost($scoped)->runScheduledOne($pages, $products, $timeLimit, $passKind); }
+            try { $results[$id] = $this->forHost($scoped)->runScheduledOne($pages, $products, 100, $passKind); }
             catch (\Throwable $exception) { $results[$id] = array('ok' => false, 'error' => 'sync_failed'); }
         }
         if (count($results) === 1) return reset($results);
@@ -82,7 +79,10 @@ class SyncEngine
         $state = is_array($state) ? $state : array();
         $previousProgress = $state['manual_job_progress'] ?? null;
         $request = $state['manual_request'] ?? null;
-        if (!is_array($request)) return $this->runOne($pages, $products, false, false, $timeLimit, $passKind);
+        if (!is_array($request)) return $this->runOne($pages, $products, false, false, $passKind);
+        if (($state['manual_job_status'] ?? '') === 'uncertain') {
+            return array('ok' => false, 'skipped' => true, 'reason' => 'uncertain_delivery', 'job_id' => $state['manual_job_id'] ?? null);
+        }
         $nextAttempt = isset($request['next_attempt_at']) ? strtotime((string) $request['next_attempt_at']) : false;
         if ($nextAttempt !== false && $nextAttempt > time()) {
             return array('ok' => false, 'skipped' => true, 'reason' => 'scheduled_retry', 'next_attempt_at' => $request['next_attempt_at']);
@@ -103,7 +103,7 @@ class SyncEngine
 
             $sliceRequest = $request;
             $result = $this->runOne((bool) ($request['pages'] ?? $pages), (bool) ($request['products'] ?? $products), false,
-                (bool) ($request['force'] ?? true), $timeLimit, 'manual', $sliceRequest, $singleSlice);
+                (bool) ($request['force'] ?? true), 'manual', $sliceRequest, $singleSlice);
             if ($singleSlice) $request = $sliceRequest;
             $state = $this->host->settingGet('sync_state', array());
             $state = is_array($state) ? $state : array();
@@ -124,6 +124,19 @@ class SyncEngine
                 $request['next_attempt_at'] = $result['next_attempt_at'];
                 $state['manual_request'] = $request;
                 $state['manual_job_status'] = 'retry_scheduled';
+            } elseif (in_array((string) ($request['slice_current_kind'] ?? ''), array('page_batch', 'product_batch', 'page_reconcile', 'product_reconcile'), true)
+                && ((int) ($result['status'] ?? -1) === 0 || (int) ($result['status'] ?? -1) >= 500)) {
+                // These POSTs may have reached the receiver before the connection failed. Keep the cursor and
+                // surface uncertainty instead of turning a possibly-sent action into an automatic duplicate.
+                $state['manual_request'] = $request;
+                $state['manual_job_status'] = 'uncertain';
+                $state['manual_job_error'] = 'uncertain_delivery';
+                $state['manual_job_finished_at'] = gmdate('c');
+                $state['manual_job_summary'] = array_intersect_key(array('ok' => false, 'error' => 'uncertain_delivery', 'status' => $result['status'] ?? 0), array_flip(array('ok', 'error', 'status')));
+            } elseif (!empty($result['next_attempt_at'])) {
+                $request['next_attempt_at'] = $result['next_attempt_at'];
+                $state['manual_request'] = $request;
+                $state['manual_job_status'] = 'retry_scheduled';
             } else {
                 unset($state['manual_request']);
                 if (!empty($result['ok'])) $state['manual_job_progress'] = null;
@@ -131,6 +144,7 @@ class SyncEngine
                 $state['manual_job_status'] = !empty($result['ok'])
                     ? (!empty($result['warning']) ? 'completed_with_warnings' : 'completed') : 'failed';
                 $state['manual_job_finished_at'] = gmdate('c');
+                if (!empty($result['ok']) && empty($result['warning']) && empty($result['export'])) $state['last_success'] = gmdate('c');
             }
             $this->host->settingPut('sync_state', $state);
             return $result;
@@ -141,7 +155,7 @@ class SyncEngine
 
     public function forHost(Host $host): self
     {
-        return new self($host, $this->kra, $this->batcher, $this->sleeper);
+        return new self($host, $this->kra, $this->batcher);
     }
 
     /** Return a chat-scoped engine for a native queue item without fanning out to other chats. */
@@ -152,14 +166,12 @@ class SyncEngine
         return $scoped ? $this->forHost($scoped) : null;
     }
 
-    private function runOne(bool $pages = true, bool $products = false, bool $dryRun = false, bool $force = false, int $timeLimit = 100, string $passKind = 'daily', ?array &$manualRequest = null, bool $singleSlice = false): array
+    private function runOne(bool $pages = true, bool $products = false, bool $dryRun = false, bool $force = false, string $passKind = 'daily', ?array &$manualRequest = null, bool $singleSlice = false): array
     {
         $lockName = 'sync-run:'.sha1($this->host->siteHome());
         if (!$this->host->lockAcquire($lockName, 300)) {
             return array('ok' => false, 'skipped' => true, 'reason' => 'running');
         }
-        $started = microtime(true);
-        $timeLimit = max(1, $timeLimit);
         try {
             if ($this->host instanceof ScopedHost && !$this->host->registered()) {
                 return array('ok' => false, 'skipped' => true, 'reason' => 'unknown_chat');
@@ -201,6 +213,8 @@ class SyncEngine
             $productWeekly = $products && ($passKind === 'weekly' || $this->reconcileDue($schedule, 'product_reconcile_at'));
             $pageRebuild = $pageResend || $pageWeekly;
             $productRebuild = $productResend || $productWeekly;
+            $sliceSnapshotIdentity = hash('sha256', serialize(array($fingerprint, $pages, $products, $pageResend, $productResend,
+                $pageWeekly, $productWeekly, $passKind, $chatId, $key)));
 
             $pageWalk = $this->emptyWalk();
             $productWalk = $this->emptyWalk();
@@ -222,6 +236,17 @@ class SyncEngine
             $productIndexed = false;
             $pageIndexObserved = null;
             $productIndexObserved = null;
+
+            $sliceSnapshot = $singleSlice && is_array($manualRequest) &&
+                ($manualRequest['slice_snapshot_identity'] ?? null) === $sliceSnapshotIdentity &&
+                is_array($manualRequest['slice_snapshot'] ?? null) ? $manualRequest['slice_snapshot'] : null;
+            if ($sliceSnapshot !== null) {
+                foreach (array('pageWalk', 'productWalk', 'pageDocs', 'productRows', 'pageMarkers', 'productMarkers', 'omittedPages', 'omittedProducts',
+                    'pageIds', 'productRootIds', 'productIds', 'pageSkipped', 'productSkipped', 'pageBuilt', 'productBuilt', 'pageIndexed', 'productIndexed',
+                    'pageIndexObserved', 'productIndexObserved') as $name) {
+                    if (array_key_exists($name, $sliceSnapshot)) $$name = $sliceSnapshot[$name];
+                }
+            } else {
 
             if ($pages && method_exists($this->host, 'pageIndex')) {
                 try {
@@ -324,6 +349,14 @@ class SyncEngine
                     return isset($productRootIds[explode('#', (string) $id, 2)[0]]);
                 }));
             }
+            }
+
+            if ($singleSlice && $sliceSnapshot === null && is_array($manualRequest)) {
+                $manualRequest['slice_snapshot_identity'] = $sliceSnapshotIdentity;
+                $manualRequest['slice_snapshot'] = compact('pageWalk', 'productWalk', 'pageDocs', 'productRows', 'pageMarkers', 'productMarkers',
+                    'omittedPages', 'omittedProducts', 'pageIds', 'productRootIds', 'productIds', 'pageSkipped', 'productSkipped', 'pageBuilt',
+                    'productBuilt', 'pageIndexed', 'productIndexed', 'pageIndexObserved', 'productIndexObserved');
+            }
 
             $changedPages = $this->changedPages($pageDocs, $pageResend, $pageMarkers);
             $changedProducts = $this->changedProducts($productRows, $productResend, $productMarkers);
@@ -402,11 +435,13 @@ class SyncEngine
                 }
                 if ($sliceCursor < count($operations)) {
                     $operation = $operations[$sliceCursor];
-                    $requestTimeout = max(1, min(20, $timeLimit - (int) (microtime(true) - $started)));
+                    $manualRequest['slice_current_kind'] = (string) $operation['kind'];
+                    // A slice executes one API operation; export/build time must not reduce its network timeout.
+                    $requestTimeout = 20;
                     $kind = $operation['kind'];
                     if ($kind === 'page_batch') {
                         $batch = $operation['payload'];
-                        $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
+                        $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'documents', 'POST', array(), array_merge($envelope, $chatContext, array('docs' => $batch)), $requestTimeout);
                         });
                         if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('documents_failed', $result), $plan);
@@ -414,14 +449,14 @@ class SyncEngine
                         if ((int) $operation['index'] === count($pageBatches) - 1 && $pages) $this->markAccepted(false, $changedPages['hashes'], $changedPages['markers'], $changedPages['record_counts']);
                     } elseif ($kind === 'product_batch') {
                         $batch = $operation['payload'];
-                        $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
+                        $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'products', 'POST', array(), array_merge($envelope, $chatContext, array('products' => $batch)), $requestTimeout);
                         });
                         if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('products_failed', $result), $plan);
                         $manualRequest['products_processed'] += count($batch);
                         if ((int) $operation['index'] === count($productBatches) - 1 && $products) $this->markAccepted(true, $changedProducts['hashes'], $changedProducts['markers'], $changedProducts['record_counts']);
                     } elseif ($kind === 'page_reconcile') {
-                        $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $pageIds, $requestTimeout) {
+                        $result = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $pageIds, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'documents/reconcile', 'POST', array(), array_merge($envelope, $chatContext, array('ids' => array_keys($pageIds))), $requestTimeout);
                         });
                         if (!$this->successful($result)) return array_merge($this->failure('reconcile_failed', $result), $plan);
@@ -429,7 +464,7 @@ class SyncEngine
                         $omittedPages = array_intersect_key($omittedPages, $pageIds);
                         if ($force || $pageWeekly) $this->rememberReconcile('doc_reconcile_at');
                     } elseif ($kind === 'product_reconcile') {
-                        $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $productIds, $requestTimeout) {
+                        $result = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $productIds, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'products/reconcile', 'POST', array(), array_merge($envelope, $chatContext, array('ids' => array_values(array_unique($productIds)))), $requestTimeout);
                         });
                         if (!$this->successful($result)) return array_merge($this->failure('products_reconcile_failed', $result), $plan);
@@ -437,12 +472,12 @@ class SyncEngine
                         $omittedProducts = array_intersect_key($omittedProducts, $productRootIds);
                         if ($force || $productWeekly) $this->rememberReconcile('product_reconcile_at');
                     } elseif ($kind === 'status') {
-                        $status = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $requestTimeout) {
+                        $status = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null, $requestTimeout);
                         });
                         if (!$this->successful($status)) return array_merge($this->failure('status_failed', $status), $plan);
                     } else {
-                        $productStatus = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $requestTimeout) {
+                        $productStatus = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'products/status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null, $requestTimeout);
                         });
                         if ($this->successful($productStatus)) {
@@ -455,6 +490,7 @@ class SyncEngine
                         }
                     }
                     $manualRequest['slice_cursor'] = ++$sliceCursor;
+                    unset($manualRequest['slice_current_kind']);
                     if ($sliceCursor < count($operations)) {
                         $pageDone = min($sliceCursor, count($pageBatches));
                         $productDone = max(0, min(count($productBatches), $sliceCursor - count($pageBatches)));
@@ -475,14 +511,14 @@ class SyncEngine
                 $this->dropBeforeSend(false, $changedPages['sent_ids'], $pageResend);
                 $this->dropBeforeSend(true, $changedProducts['sent_ids'], $productResend);
                 foreach ($pageBatches as $batch) {
-                    $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $batch, $envelope) {
+                    $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope) {
                         return $this->kra->siteKnowledge($key, 'documents', 'POST', array(), array_merge($envelope, $chatContext, array('docs' => $batch)));
                     });
                     if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('documents_failed', $result), $plan);
                 }
                 if ($pages) $this->markAccepted(false, $changedPages['hashes'], $changedPages['markers'], $changedPages['record_counts']);
                 foreach ($productBatches as $batch) {
-                    $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $batch, $envelope) {
+                    $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope) {
                         return $this->kra->siteKnowledge($key, 'products', 'POST', array(), array_merge($envelope, $chatContext, array('products' => $batch)));
                     });
                     if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('products_failed', $result), $plan);
@@ -495,7 +531,7 @@ class SyncEngine
             // The reconciliation booleans above were computed before either execution path to preserve the same
             // complete-export guard for ordinary scheduler runs and checkpointed admin polls.
             if ($reconcilePages && !$singleSlice) {
-                $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $pageIds) {
+                $result = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $pageIds) {
                     return $this->kra->siteKnowledge($key, 'documents/reconcile', 'POST', array(), array_merge($envelope, $chatContext, array('ids' => array_keys($pageIds))));
                 });
                 if (!$this->successful($result)) {
@@ -506,7 +542,7 @@ class SyncEngine
                 if ($force || $pageWeekly) $this->rememberReconcile('doc_reconcile_at');
             }
             if ($reconcileProducts && !$singleSlice) {
-                $result = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope, $productIds) {
+                $result = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $productIds) {
                     return $this->kra->siteKnowledge($key, 'products/reconcile', 'POST', array(), array_merge($envelope, $chatContext, array('ids' => array_values(array_unique($productIds)))));
                 });
                 if (!$this->successful($result)) {
@@ -516,9 +552,12 @@ class SyncEngine
                 $omittedProducts = array_intersect_key($omittedProducts, $productRootIds);
                 if ($force || $productWeekly) $this->rememberReconcile('product_reconcile_at');
             }
-            if (!$singleSlice) $status = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope) {
-                return $this->kra->siteKnowledge($key, 'status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null);
-            });
+            $status = array();
+            if (!$singleSlice) {
+                $status = $this->sendWithRetry(function () use ($key, $chatContext, $envelope) {
+                    return $this->kra->siteKnowledge($key, 'status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null);
+                });
+            }
             if (!$singleSlice && !$this->successful($status)) {
                 return array_merge($this->failure('status_failed', $status), $plan);
             }
@@ -531,7 +570,7 @@ class SyncEngine
                 }
             }
             if ($products && !$incompleteProducts && !$skipProductReconcile && !$singleSlice) {
-                $productStatus = $this->sendWithRetry($started, $timeLimit, function () use ($key, $chatContext, $envelope) {
+                $productStatus = $this->sendWithRetry(function () use ($key, $chatContext, $envelope) {
                     return $this->kra->siteKnowledge($key, 'products/status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null);
                 });
                 $expected = $this->storedRecordCount(true, $productRootIds);
@@ -561,6 +600,7 @@ class SyncEngine
                 $state['export'] = $plan['export'];
             } else {
                 unset($state['warning'], $state['export']);
+                if (!$singleSlice) $state['last_success'] = gmdate('c');
             }
             $this->host->settingPut('sync_state', $state);
             return array_merge(array('ok' => true), $plan);
@@ -839,18 +879,13 @@ class SyncEngine
         return array('payload' => $payload, 'hashes' => $hashes, 'markers' => $acceptedMarkers, 'record_counts' => $recordCounts, 'sent_ids' => array_keys($sentIds));
     }
 
-    private function sendWithRetry(float $started, int $limit, callable $call): array
+    private function sendWithRetry(callable $call): array
     {
         try {
-            $result = $call();
+            return $call();
         } catch (\Throwable $exception) {
-            $result = array('status' => 0, 'body' => array('error' => 'connection_error'), 'retry_after' => 0);
+            return array('status' => 0, 'body' => array('error' => 'connection_error'), 'retry_after' => 0);
         }
-        if ((int) ($result['status'] ?? 0) === 429) {
-            // failure() persists Retry-After; the adapter scheduler will enqueue a new attempt later.
-            return $result;
-        }
-        return $result;
     }
 
     private function failure(string $error, array $result): array
@@ -889,7 +924,9 @@ class SyncEngine
 
     private function storeSyncError(string $error, ?string $next): void
     {
-        $this->host->settingPut('sync_state', array('last_run' => gmdate('c'), 'next_run' => $next, 'running' => false, 'error' => $error));
+        $state = $this->host->settingGet('sync_state', array());
+        $state = is_array($state) ? $state : array();
+        $this->host->settingPut('sync_state', array_replace($state, array('last_run' => gmdate('c'), 'next_run' => $next, 'running' => false, 'error' => $error)));
     }
 
     private function successful(array $result): bool

@@ -37,10 +37,10 @@ class SyncWorker extends QueueWorkerBase implements ContainerFactoryPluginInterf
     $data = is_array($data) ? $data : [];
     $chat = isset($data['chat']) && is_string($data['chat']) ? $data['chat'] : '';
     if ($chat !== '') {
-      $this->syncEngine->forChat($chat)?->runScheduled(TRUE, TRUE, 50, 'daily');
+      $this->syncEngine->forChat($chat)?->runScheduled(TRUE, TRUE, 'daily');
       return;
     }
-    $this->syncEngine->runScheduled(TRUE, TRUE, 50, 'daily');
+    $this->syncEngine->runScheduled(TRUE, TRUE, 'daily');
   }
 
 }

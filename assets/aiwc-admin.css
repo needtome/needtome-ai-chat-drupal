@@ -32,6 +32,10 @@
 .aiwc-root input, .aiwc-root select, .aiwc-root textarea, .aiwc-root button { box-sizing: border-box; }
 /* Hosts pad bare <summary> (Claro: 13px 20px); spacing comes from the details box itself. */
 .aiwc-root summary { margin: 0; padding: 0; line-height: 1.45; }
+.aiwc-root .aiwc-advanced { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--aiwc-border); }
+.aiwc-root .aiwc-advanced > summary { font-weight: 600; cursor: pointer; }
+.aiwc-root .aiwc-advanced > p { margin: 10px 0; }
+.aiwc-root .aiwc-external-schedule { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .aiwc-root button, .aiwc-root input, .aiwc-root select, .aiwc-root textarea { font: inherit; }
 .aiwc-root h1, .aiwc-root h2, .aiwc-root h3, .aiwc-root p { margin-top: 0; }
 .aiwc-root h1 { margin-bottom: 4px; font-size: 23px; line-height: 1.3; font-weight: 600; }
@@ -62,6 +66,8 @@
 .aiwc-root .aiwc-side { position: sticky; top: 20px; min-width: 0; overflow-wrap: anywhere; }
 .aiwc-root .aiwc-side .aiwc-card > .aiwc-btn { margin-top: 12px; }
 .aiwc-root .aiwc-preview-mount:not([hidden]) { margin-top: 12px; }
+.aiwc-root .aiwc-preview-placeholder { margin: 12px 0; padding: 18px 14px; border: 1px dashed var(--aiwc-border); border-radius: 8px; background: var(--aiwc-surface-muted); color: var(--aiwc-muted); text-align: center; }
+.aiwc-root .aiwc-preview-placeholder[hidden] { display: none; }
 .aiwc-root .aiwc-step-title { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
 .aiwc-root .aiwc-num { display: inline-grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 50%; background: var(--aiwc-accent); color: #fff; font-size: 14px; }
 .aiwc-root .aiwc-step-card { padding: 21px; }

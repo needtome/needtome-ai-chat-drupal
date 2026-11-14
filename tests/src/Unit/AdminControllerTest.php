@@ -18,6 +18,7 @@ class AdminControllerTest extends TestCase {
     self::assertSame('state', AdminController::normalizeRouteParameter('/state'));
     self::assertSame('sync/status', AdminController::normalizeRouteParameter('sync/status'));
     self::assertNull(AdminController::normalizeRouteParameter('admin/delete'));
+    self::assertNull(AdminController::normalizeRouteParameter('agent/secret'));
     self::assertSame('X-CSRF-Token', AdminController::csrfHeaderName());
     self::assertTrue(AdminController::csrfIsValid('expected', 'expected'));
     self::assertFalse(AdminController::csrfIsValid('expected', 'other'));
@@ -26,6 +27,18 @@ class AdminControllerTest extends TestCase {
     self::assertFalse(AdminController::csrfRequiredFor('GET', 'state'));
     self::assertTrue(AdminController::csrfRequiredFor('POST', 'sync'));
     self::assertTrue((new \ReflectionClass(AdminController::class))->hasProperty('stringTranslation'));
+  }
+
+  /**
+   * Tests that the chat module no longer advertises CMS update abilities.
+   */
+  public function testSiteAgentRoutesAndHandlersAreAbsent(): void {
+    $module_root = dirname(__DIR__, 3);
+    $routes = file_get_contents($module_root . '/needtome_ai_chat.routing.yml');
+    self::assertIsString($routes);
+    self::assertStringNotContainsString('/wp-json/ntmaa/v1/agent/', $routes);
+    self::assertFileDoesNotExist($module_root . '/src/Controller/SiteAgentController.php');
+    self::assertFileDoesNotExist($module_root . '/src/DrupalUpdates.php');
   }
 
   /**

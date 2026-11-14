@@ -46,7 +46,7 @@ class NeedToMeAiChatCommands extends DrushCommands {
     $pages = (bool) ($options['pages'] ?? FALSE) || !$products;
     $dryRun = (bool) ($options['dry-run'] ?? FALSE);
     $force = (bool) ($options['force'] ?? FALSE);
-    $result = $this->syncEngine->run($pages, $products, $dryRun, $force, 100, 'daily');
+    $result = $this->syncEngine->run($pages, $products, $dryRun, $force, 'daily');
     $this->logger()->notice(($dryRun ? 'Dry run' : 'Sync') . ': ' . (!empty($result['ok']) ? 'ready' : 'stopped'));
     $multiChat = isset($result['chats']) && is_array($result['chats']);
     if ($multiChat) {

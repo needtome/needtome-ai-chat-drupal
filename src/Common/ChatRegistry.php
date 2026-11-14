@@ -40,6 +40,7 @@ class ChatRegistry
         return $id === 'chat1' || preg_match('/^c[a-f0-9]{16}$/', $id) === 1;
     }
 
+    /** @phpstan-impure The registry lives in external storage and can change between calls. */
     public function contains(string $id): bool
     {
         return $this->validId($id) && in_array($id, $this->ids(), true);
@@ -327,8 +328,17 @@ class ChatRegistry
         // enumerates every legacy chat key when uninstalling or removing it.
         if ($id === 'chat1') return $this->contains($id);
         $manifestKey = self::MANIFEST_PREFIX.$id;
+        if (!$this->contains($id)) return false;
+        $keys = $this->host->settingGet($manifestKey, array());
+        $keys = is_array($keys) ? $keys : array();
+        if (in_array($storageKey, $keys, true)) return true;
         $lock = 'chat-data-keys:'.$id;
-        if (!$this->host->lockAcquire($lock, 30)) return false;
+        $acquired = false;
+        for ($attempt = 0; $attempt < 4 && !$acquired; $attempt++) {
+            $acquired = $this->host->lockAcquire($lock, 30);
+            if (!$acquired && $attempt < 3) usleep(10000 * ($attempt + 1));
+        }
+        if (!$acquired) throw new \RuntimeException('Chat settings registry is busy.');
         try {
             if (!$this->contains($id)) return false;
             $keys = $this->host->settingGet($manifestKey, array());

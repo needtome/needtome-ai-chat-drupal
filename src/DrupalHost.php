@@ -14,6 +14,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -79,13 +80,17 @@ class DrupalHost extends AbstractHost {
    * Returns the adapter version.
    */
   public function version(): string {
-    return '1.0.3';
+    return '1.0.6';
   }
 
   /**
    * Returns the configured AI Worker base URL.
    */
   public function base(): string {
+    $override = defined('NEEDTOME_AI_CHAT_BASE_URL') ? trim((string) constant('NEEDTOME_AI_CHAT_BASE_URL')) : '';
+    if ($override !== '') {
+      return self::normalizeBase($override);
+    }
     return self::normalizeBase((string) $this->configFactory->get('needtome_ai_chat.settings')->get('base'));
   }
 
@@ -588,15 +593,21 @@ class DrupalHost extends AbstractHost {
         if (!in_array($definition->getType(), ['entity_reference', 'entity_reference_revisions'], TRUE)) {
           continue;
         }
-        $table = 'node__' . $name;
-        if (!$database->schema()->tableExists($table) || !$database->schema()->fieldExists($table, 'target_id')) {
+        $mapping = $this->entityTypeManager->getStorage('node')->getTableMapping();
+        $columns = self::mappedReferenceColumns($mapping, $definition);
+        if ($columns === NULL || !$database->schema()->tableExists($columns['table']) || !$database->schema()->fieldExists($columns['table'], $columns['target_id'])) {
+          foreach ($result as &$item) {
+            $item['trustworthy'] = FALSE;
+          }
+          unset($item);
           continue;
         }
-        $columns = ['entity_id', 'langcode', 'target_id'];
-        if ($database->schema()->fieldExists($table, 'target_revision_id')) {
-          $columns[] = 'target_revision_id';
+        $query = $database->select($columns['table'], 'r')->fields('r', ['entity_id', 'langcode'])->condition('entity_id', $nids, 'IN')->orderBy('entity_id')->orderBy('delta');
+        $query->addField('r', $columns['target_id'], 'target_id');
+        if ($columns['target_revision_id'] !== NULL && $database->schema()->fieldExists($columns['table'], $columns['target_revision_id'])) {
+          $query->addField('r', $columns['target_revision_id'], 'target_revision_id');
         }
-        $rows = $this->fetchAssociativeRows($database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $nids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute());
+        $rows = $this->fetchAssociativeRows($query->execute());
         $targetType = (string) $definition->getSetting('target_type');
         $entityType = $this->entityTypeManager->getDefinition($targetType, FALSE);
         $baseTable = $entityType ? $entityType->getDataTable() ?: $entityType->getBaseTable() : NULL;
@@ -626,6 +637,29 @@ class DrupalHost extends AbstractHost {
       unset($row);
     }
     return $result;
+  }
+
+  /**
+   * Resolve logical reference columns to Drupal's physical field-table columns. */
+  public static function mappedReferenceColumns($tableMapping, $definition): ?array {
+    try {
+      $table = $tableMapping->getFieldTableName($definition);
+      $target = $tableMapping->getFieldColumnName($definition, 'target_id');
+      $fieldColumns = method_exists($definition, 'getColumns') ? (array) $definition->getColumns() : [];
+      $revision = array_key_exists('target_revision_id', $fieldColumns)
+        ? $tableMapping->getFieldColumnName($definition, 'target_revision_id') : NULL;
+      if (!is_string($table) || $table === '' || !is_string($target) || $target === '') {
+        return NULL;
+      }
+      return [
+        'table' => $table,
+        'target_id' => $target,
+        'target_revision_id' => is_string($revision) ? $revision : NULL,
+      ];
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
   /**
@@ -673,24 +707,41 @@ class DrupalHost extends AbstractHost {
         return [];
       }
 
+      $anonymous = User::getAnonymousUser();
+      $loadedProducts = $storage->loadMultiple($ids);
+      $ids = array_values(array_filter($ids, static fn ($id) => isset($loadedProducts[$id]) && self::anonymousCanView($loadedProducts[$id], $anonymous)));
+      if (!$ids) {
+        return [];
+      }
+
       $database = $this->database;
       $productRows = $database->select('commerce_product_field_data', 'p')
         ->fields('p', ['product_id', 'langcode', 'title', 'changed', 'status', 'type', 'default_langcode'])
-        ->condition('product_id', $ids, 'IN')->condition('status', 1)->orderBy('product_id')->orderBy('langcode')
+        ->condition('product_id', $ids, 'IN')->condition('status', 1)->condition('default_langcode', 1)->orderBy('product_id')->orderBy('langcode')
         ->execute();
       $productRows = $this->fetchAssociativeRows($productRows);
       $links = $database->select('commerce_product__variations', 'v')
         ->fields('v', ['entity_id', 'langcode', 'delta', 'variations_target_id'])
         ->condition('entity_id', $ids, 'IN')->orderBy('entity_id')->orderBy('delta')->execute();
       $links = $this->fetchAssociativeRows($links);
+      $defaultLanguages = [];
+      foreach ($productRows as $row) {
+        $defaultLanguages[(int) $row['product_id']] = (string) $row['langcode'];
+      }
+      $links = array_values(array_filter($links, static fn ($link) => ($defaultLanguages[(int) $link['entity_id']] ?? NULL) === (string) $link['langcode']));
       $variationIds = array_values(array_unique(array_map(static fn ($row) => (int) $row['variations_target_id'], $links)));
       $variations = [];
       if ($variationIds) {
+        $variationEntities = $this->entityTypeManager->getStorage('commerce_product_variation')->loadMultiple($variationIds);
         $variationRows = $database->select('commerce_product_variation_field_data', 'v')
           ->fields('v', ['variation_id', 'sku', 'price_number', 'price_currency_code', 'status', 'changed'])
           ->condition('variation_id', $variationIds, 'IN')->orderBy('variation_id')->execute();
         $variationRows = $this->fetchAssociativeRows($variationRows);
         foreach ($variationRows as $row) {
+          $variation = $variationEntities[(int) $row['variation_id']] ?? NULL;
+          if ((int) ($row['status'] ?? 0) !== 1 || !self::anonymousCanView($variation, $anonymous)) {
+            continue;
+          }
           $variations[(int) $row['variation_id']] = $row;
         }
       }
@@ -786,15 +837,30 @@ class DrupalHost extends AbstractHost {
         if (!in_array($definition->getType(), ['entity_reference', 'entity_reference_revisions'], TRUE)) {
           continue;
         }
-        $table = 'commerce_product__' . $name;
-        if (!$database->schema()->tableExists($table) || !$database->schema()->fieldExists($table, 'target_id')) {
+        $storage = $this->entityTypeManager->getStorage('commerce_product');
+        if (!$storage instanceof SqlContentEntityStorage) {
+          foreach ($result as &$item) {
+            $item['trustworthy'] = FALSE;
+          }
+          unset($item);
+
+          return $result;
+        }
+        $mapping = $storage->getTableMapping();
+        $columns = self::mappedReferenceColumns($mapping, $definition);
+        if ($columns === NULL || !$database->schema()->tableExists($columns['table']) || !$database->schema()->fieldExists($columns['table'], $columns['target_id'])) {
+          foreach ($result as &$item) {
+            $item['trustworthy'] = FALSE;
+          }
+          unset($item);
           continue;
         }
-        $columns = ['entity_id', 'langcode', 'target_id'];
-        if ($database->schema()->fieldExists($table, 'target_revision_id')) {
-          $columns[] = 'target_revision_id';
+        $query = $database->select($columns['table'], 'r')->fields('r', ['entity_id', 'langcode'])->condition('entity_id', $productIds, 'IN')->orderBy('entity_id')->orderBy('delta');
+        $query->addField('r', $columns['target_id'], 'target_id');
+        if ($columns['target_revision_id'] !== NULL && $database->schema()->fieldExists($columns['table'], $columns['target_revision_id'])) {
+          $query->addField('r', $columns['target_revision_id'], 'target_revision_id');
         }
-        $rows = $this->fetchAssociativeRows($database->select($table, 'r')->fields('r', $columns)->condition('entity_id', $productIds, 'IN')->orderBy('entity_id')->orderBy('delta')->execute());
+        $rows = $this->fetchAssociativeRows($query->execute());
         $targetType = (string) $definition->getSetting('target_type');
         $entityType = $this->entityTypeManager->getDefinition($targetType, FALSE);
         $baseTable = $entityType ? ($entityType->getDataTable() ?: $entityType->getBaseTable()) : NULL;
@@ -855,11 +921,20 @@ class DrupalHost extends AbstractHost {
     }
     $rows = [];
     $converter = new HtmlToText();
+    $anonymous = User::getAnonymousUser();
     foreach ($storage->loadMultiple($ids) as $product) {
       if (!$product instanceof ContentEntityInterface || !method_exists($product, 'getVariations')) {
         continue;
       }
+      if (!self::anonymousCanView($product, $anonymous)) {
+        $this->exportOmitted('products', (string) $product->id());
+        continue;
+      }
+      $defaultLangcode = (string) $product->getUntranslated()->language()->getId();
       foreach ($product->getTranslationLanguages() as $langcode => $language) {
+        if (!self::productLanguageSelected((string) $langcode, $defaultLangcode)) {
+          continue;
+        }
         if (!$product->hasTranslation($langcode)) {
           continue;
         }
@@ -867,11 +942,14 @@ class DrupalHost extends AbstractHost {
         if (!$translation instanceof EntityChangedInterface || !method_exists($translation, 'getVariations')) {
           continue;
         }
-        if (method_exists($translation, 'isPublished') && !$translation->isPublished()) {
+        if ((method_exists($translation, 'isPublished') && !$translation->isPublished()) || !self::anonymousCanView($translation, $anonymous)) {
           continue;
         }
         $variations = [];
         foreach ($translation->getVariations() as $variation) {
+          if ((method_exists($variation, 'isPublished') && !$variation->isPublished()) || !self::anonymousCanView($variation, $anonymous)) {
+            continue;
+          }
           $variations[] = self::variationRow($variation);
         }
         $body = self::fieldText($translation, ['body', 'description']);
@@ -931,6 +1009,23 @@ class DrupalHost extends AbstractHost {
       'modified_at' => (string) ($row['modified_at'] ?? gmdate('c')),
       'variations' => array_values((array) ($row['variations'] ?? [])),
     ];
+  }
+
+  /**
+   * Checks view access using the anonymous account context. */
+  public static function anonymousCanView($entity, $anonymous): bool {
+    try {
+      return is_object($entity) && method_exists($entity, 'access') && $entity->access('view', $anonymous) === TRUE;
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Checks whether an entity belongs to the configured default language. */
+  public static function productLanguageSelected(string $langcode, string $defaultLangcode): bool {
+    return $langcode !== '' && $langcode === $defaultLangcode;
   }
 
   /**

@@ -368,15 +368,19 @@ class OAuth
 
     private function clearCaches(): void
     {
-        $indexKey = 'screen-cache-index:'.sha1($this->host->siteHome());
-        $keys = $this->host->cacheGet($indexKey);
-        if (is_array($keys)) {
-            foreach ($keys as $key) {
-                $this->host->cacheDelete((string) $key);
+        $registry = new ChatRegistry($this->host);
+        foreach ($registry->ids() as $id) {
+            $chat = $registry->scoped($id);
+            if (!$chat) continue;
+            $indexKey = 'screen-cache-index:'.sha1($chat->siteHome());
+            $keys = $chat->cacheGet($indexKey);
+            if (is_array($keys)) {
+                foreach ($keys as $key) {
+                    $chat->cacheDelete((string) $key);
+                }
             }
+            $chat->cacheDelete($indexKey);
         }
-        $this->host->cacheDelete($indexKey);
-        $this->host->cacheDelete('sync-status:'.sha1($this->host->siteHome().'|'.$this->host->settingGet('chat_id')));
     }
 
 }

@@ -58,7 +58,7 @@ class WidgetTag
         $mode = (string) ($options['pages_mode'] ?? 'all');
         if ($mode === 'all') return true;
         $rules = is_array($options['pages'] ?? null) ? $options['pages'] : preg_split('/\\r\\n|\\r|\\n/', (string) ($options['pages'] ?? ''));
-        $requestUri = $requestUri ?? (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/');
+        $requestUri = $requestUri ?? '/';
         $path = (string) preg_replace('#^[a-z][a-z0-9+.\\-]*://[^/?\\#]*#i', '', $requestUri);
         $path = (string) strtok($path, '?#');
         if ($path === '' || $path[0] !== '/') $path = '/'.$path;

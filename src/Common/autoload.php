@@ -3,6 +3,7 @@
 // Part of NeedToMe AI Chat php-common. Edit integrations/php-common/src, then run node integrations/php-common/sync.mjs.
 namespace Drupal\needtome_ai_chat\Common;
 
+// phpcs:disable PSR1.Files.SideEffects
 if (!class_exists(__NAMESPACE__ . '\\PhpCommonAutoloadGuard', false)) {
     class PhpCommonAutoloadGuard {}
     spl_autoload_register(function ($class) {
@@ -13,3 +14,4 @@ if (!class_exists(__NAMESPACE__ . '\\PhpCommonAutoloadGuard', false)) {
         if (is_file($file)) require_once $file;
     }, true, true);
 }
+// phpcs:enable PSR1.Files.SideEffects
