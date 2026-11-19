@@ -1,7 +1,7 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "files": {
-    "aiwc-admin.js": "8dba9636cd122c53720a6a669645b336268d2522b2970f8fc7839be3a05ef838",
+    "aiwc-admin.js": "81e88955ddf9c447b71ab7103a717455a0a7bf748a1038201e0bface42ed1a0d",
     "aiwc-admin.css": "721eef5f7e8a9f5c2215295745c730ed76722d696e447d8da1448e59f6aedc0e",
     "aiwc-loader.js": "ea81e391d3332fbe4416f2095f0063daa4fe03daf9c7b50a0054941b19e6b310"
   }

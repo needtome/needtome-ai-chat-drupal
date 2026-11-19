@@ -13,6 +13,8 @@ require_once __DIR__ . '/src/Common/autoload.php';
  * Implements hook_page_attachments().
  */
 function needtome_ai_chat_page_attachments(array &$attachments): void {
+  $attachments['#cache']['tags'][] = 'needtome_ai_chat_widget';
+  $attachments['#cache']['contexts'][] = 'languages:language_interface';
   $container = \Drupal::getContainer();
   if ($container->get('router.admin_context')->isAdminRoute()) {
     return;
@@ -58,9 +60,6 @@ function needtome_ai_chat_page_attachments(array &$attachments): void {
     ],
     'needtome_ai_chat_widget',
   ];
-  $attachments['#cache']['tags'][] = 'needtome_ai_chat_widget';
-  $attachments['#cache']['contexts'][] = 'languages:language_interface';
-
 }
 
 /**

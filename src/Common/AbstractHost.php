@@ -60,7 +60,7 @@ abstract class AbstractHost implements Host
     public function productDocumentsByIds(array $ids): iterable
     {
         $wanted = array_fill_keys(array_map('strval', $ids), true);
-        foreach ($this->productRows(500) as $product) {
+        foreach ($this->productRows(PHP_INT_MAX) as $product) {
             if (is_array($product) && isset($product['id']) && isset($wanted[(string) $product['id']])) {
                 yield $product;
             }

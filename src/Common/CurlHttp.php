@@ -120,7 +120,6 @@ class CurlHttp implements Http
             if ($temp !== null && is_file($temp)) {
                 @unlink($temp);
             }
-            curl_close($handle);
         }
     }
 
@@ -170,10 +169,11 @@ class CurlHttp implements Http
             }
             $response .= $chunk;
         }
+        $metadata = stream_get_meta_data($stream);
+        $lines = isset($metadata['wrapper_data']) && is_array($metadata['wrapper_data']) ? $metadata['wrapper_data'] : array();
         fclose($stream);
         $status = 0;
         $responseHeaders = array();
-        $lines = $http_response_header;
         foreach ($lines as $line) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#i', $line, $match)) {
                 $status = (int) $match[1];

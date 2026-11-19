@@ -257,7 +257,7 @@ class SyncEngine
                 }
                 if (is_iterable($index)) {
                     $pageIndexed = true;
-                    $indexed = $this->collectIndex($index, 'pages', 2000);
+                    $indexed = $this->collectIndex($index, 'pages', PHP_INT_MAX);
                     $pageWalk = $indexed['walk'];
                     $pageIndexObserved = $indexed['observed'];
                     foreach ($indexed['rows'] as $row) {
@@ -300,7 +300,7 @@ class SyncEngine
                 }
                 if (is_iterable($index)) {
                     $productIndexed = true;
-                    $indexed = $this->collectIndex($index, 'products', $this->productCap());
+                    $indexed = $this->collectIndex($index, 'products', PHP_INT_MAX);
                     $productWalk = $indexed['walk'];
                     $productIndexObserved = $indexed['observed'];
                     foreach ($indexed['rows'] as $row) {
@@ -444,6 +444,7 @@ class SyncEngine
                         $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'documents', 'POST', array(), array_merge($envelope, $chatContext, array('docs' => $batch)), $requestTimeout);
                         });
+                        if ($this->knowledgeLimitReached($result['body'] ?? array())) return array_merge(array('ok' => true, 'warning' => 'knowledge_limit_reached'), $plan);
                         if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('documents_failed', $result), $plan);
                         $manualRequest['pages_processed'] += count($batch);
                         if ((int) $operation['index'] === count($pageBatches) - 1 && $pages) $this->markAccepted(false, $changedPages['hashes'], $changedPages['markers'], $changedPages['record_counts']);
@@ -452,6 +453,7 @@ class SyncEngine
                         $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'products', 'POST', array(), array_merge($envelope, $chatContext, array('products' => $batch)), $requestTimeout);
                         });
+                        if ($this->knowledgeLimitReached($result['body'] ?? array())) return array_merge(array('ok' => true, 'warning' => 'knowledge_limit_reached'), $plan);
                         if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('products_failed', $result), $plan);
                         $manualRequest['products_processed'] += count($batch);
                         if ((int) $operation['index'] === count($productBatches) - 1 && $products) $this->markAccepted(true, $changedProducts['hashes'], $changedProducts['markers'], $changedProducts['record_counts']);
@@ -476,6 +478,7 @@ class SyncEngine
                             return $this->kra->siteKnowledge($key, 'status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null, $requestTimeout);
                         });
                         if (!$this->successful($status)) return array_merge($this->failure('status_failed', $status), $plan);
+                        if ($this->knowledgeLimitReached($status['body'] ?? array())) return array_merge(array('ok' => true, 'warning' => 'knowledge_limit_reached'), $plan);
                     } else {
                         $productStatus = $this->sendWithRetry(function () use ($key, $chatContext, $envelope, $requestTimeout) {
                             return $this->kra->siteKnowledge($key, 'products/status', 'GET', array_merge(array('site' => $envelope['site']), $chatContext), null, $requestTimeout);
@@ -514,6 +517,7 @@ class SyncEngine
                     $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope) {
                         return $this->kra->siteKnowledge($key, 'documents', 'POST', array(), array_merge($envelope, $chatContext, array('docs' => $batch)));
                     });
+                    if ($this->knowledgeLimitReached($result['body'] ?? array())) return array_merge(array('ok' => true, 'warning' => 'knowledge_limit_reached'), $plan);
                     if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('documents_failed', $result), $plan);
                 }
                 if ($pages) $this->markAccepted(false, $changedPages['hashes'], $changedPages['markers'], $changedPages['record_counts']);
@@ -521,6 +525,7 @@ class SyncEngine
                     $result = $this->sendWithRetry(function () use ($key, $chatContext, $batch, $envelope) {
                         return $this->kra->siteKnowledge($key, 'products', 'POST', array(), array_merge($envelope, $chatContext, array('products' => $batch)));
                     });
+                    if ($this->knowledgeLimitReached($result['body'] ?? array())) return array_merge(array('ok' => true, 'warning' => 'knowledge_limit_reached'), $plan);
                     if (!$this->successful($result) || $this->hasRejected($result['body'] ?? array())) return array_merge($this->failure('products_failed', $result), $plan);
                 }
                 if ($products) $this->markAccepted(true, $changedProducts['hashes'], $changedProducts['markers'], $changedProducts['record_counts']);
@@ -560,6 +565,9 @@ class SyncEngine
             }
             if (!$singleSlice && !$this->successful($status)) {
                 return array_merge($this->failure('status_failed', $status), $plan);
+            }
+            if (!$singleSlice && $this->knowledgeLimitReached($status['body'] ?? array())) {
+                $plan['warning'] = 'knowledge_limit_reached';
             }
             if (!$singleSlice && $pages && !$incompletePages && !$skipPageReconcile) {
                 $expected = $this->storedRecordCount(false, $pageIds);
@@ -624,13 +632,11 @@ class SyncEngine
             $public = $this->publicDocument($doc);
             if ($public === true) {
                 $docs[] = $doc;
-                if (count($docs) >= 2000) break;
             } elseif (is_string($public)) {
                 $walk = $this->walkWithFailure($walk, 'pages', (string) ($doc['id'] ?? 'unknown'), $public);
             }
         }
         $walk = $this->mergeWalk($walk, $this->host->exportReport('pages'));
-        $walk = $this->walkAtLimit($walk, count($docs) >= 2000, (string) (end($docs)['id'] ?? ''));
         return $docs;
     }
 
@@ -947,6 +953,19 @@ class SyncEngine
         return false;
     }
 
+    private function knowledgeLimitReached($body): bool
+    {
+        if (!is_array($body)) return false;
+        if (isset($body['indexing']['dropped']) && (int) $body['indexing']['dropped'] > 0) return true;
+        $codes = array('knowledge_limit_reached', 'kb_limit_reached', 'limit_chunks', 'limit_docs', 'limit_chars');
+        $code = (string) ($body['code'] ?? $body['error'] ?? '');
+        if (in_array($code, $codes, true)) return true;
+        foreach ((array) ($body['results'] ?? array()) as $result) {
+            if (is_array($result) && in_array((string) ($result['reason'] ?? ''), $codes, true)) return true;
+        }
+        return false;
+    }
+
     private function storedHashes(): array
     {
         $hashes = $this->host->settingGet('sync_hashes', array());
@@ -1139,12 +1158,7 @@ class SyncEngine
 
     private function productCap(): int
     {
-        $cap = 500;
-        $status = $this->host->settingGet('products_status', array());
-        if (is_array($status) && isset($status['limits']['max_products']) && is_numeric($status['limits']['max_products'])) {
-            $cap = min($cap, max(0, (int) $status['limits']['max_products']));
-        }
-        return $cap;
+        return PHP_INT_MAX;
     }
 
     private function productIds(array $products): array

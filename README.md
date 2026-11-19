@@ -13,9 +13,10 @@ report a problem in the
 
 ## Requirements
 
-- Drupal 10.3 or Drupal 11.
+- Drupal 10.3, Drupal 11, or Drupal 12.
 - PHP 8.1 or newer, with cURL, JSON, DOM, and OpenSSL or sodium enabled.
-- Drush 12 or 13 for command-line knowledge synchronization.
+- Drush 12 or later for command-line knowledge synchronization (Drush 14 on
+  Drupal 12).
 - The Drupal Commerce Product module is optional and is only needed to sync
   products.
 
@@ -37,7 +38,7 @@ methods.
 
 Build the local release archive from the repository root with
 `php integrations/drupal/build.php`. The script writes
-`integrations/drupal/dist/needtome_ai_chat-1.0.6.zip`.
+`integrations/drupal/dist/needtome_ai_chat-1.0.7.zip`.
 
 ## Configuration
 
@@ -59,7 +60,7 @@ AI Worker requests use `https://kra.name/app` by default. Any previously saved `
 
 The module provides the chat widget and knowledge sync only; CMS updates are handled through AI Worker tasks or a separate AI Admin module.
 
-The module exports published node translations that anonymous visitors can view. An empty bundle selection includes every content type. Each language version has a stable `node:{nid}:{langcode}` ID, its canonical absolute URL built from the configured site URL (also in cron/Drush), the full view rendered in that translation's language as the anonymous user, and links to the other available translations. The export limit is 2,000 documents. Commerce products are capped at 500.
+The module exports published node translations that anonymous visitors can view. An empty bundle selection includes every content type. Each language version has a stable `node:{nid}:{langcode}` ID, its canonical absolute URL built from the configured site URL (also in cron/Drush), the full view rendered in that translation's language as the anonymous user, and links to the other available translations. All eligible translations and Commerce products are exported in API batches without a fixed item-count cap. The amount AI Worker can learn is limited by the chat's plan knowledge base.
 
 Daily runs compare cheap node metadata (changed time, revision, status, type, language, alias, translations, and changed times for referenced entities) before rendering nodes. Commerce product markers include product status and changed times, canonical aliases, reference changes where targets expose a changed field, and variation SKU, status, price, currency, and changed time. If a referenced target has no trustworthy changed field, that record is rendered on each ordinary pass. A translation that is intentionally excluded or renders no exportable body is removed only on a complete pass; render or URL errors make the walk incomplete. Weekly checks rebuild and hash-compare records; an unchanged rebuild sends no documents. Daily runs reconcile only when the exported ID set changes. The full entity renderer can still depend on render configuration, blocks, or extension output outside these markers, which is refreshed at the weekly check.
 

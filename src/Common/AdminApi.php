@@ -800,9 +800,6 @@ class AdminApi
                 $options = $this->host->settingGet('sync_options', array());
                 if (is_array($options) && !empty($options['products']['enabled']) && $this->host->productsAvailable()) {
                     $products = $this->kra->siteKnowledge($key, 'products/status', 'GET', $chatContext);
-                    if (isset($products['body']['limits']['max_products'])) {
-                        $this->host->settingPut('products_status', $products['body']);
-                    }
                 }
                 // `site` is what the shared UI reads (docs, chars, indexing, last_sync_at); the wrappers stay for callers.
                 $result = array(

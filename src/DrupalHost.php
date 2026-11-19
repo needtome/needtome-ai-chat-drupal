@@ -80,7 +80,7 @@ class DrupalHost extends AbstractHost {
    * Returns the adapter version.
    */
   public function version(): string {
-    return '1.0.6';
+    return '1.0.7';
   }
 
   /**
@@ -294,7 +294,7 @@ class DrupalHost extends AbstractHost {
     $this->exportBegin('pages');
     $storage = $this->entityTypeManager->getStorage('node');
     $bundles = $this->pageSources()['bundles'] ?? [];
-    $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->sort('nid')->range(0, 2000);
+    $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->sort('nid');
     if ($bundles) {
       $query->condition('type', $bundles, 'IN');
     }
@@ -302,9 +302,6 @@ class DrupalHost extends AbstractHost {
     $converter = new HtmlToText();
     $count = 0;
     $nids = $query->execute();
-    if (count($nids) >= 2000) {
-      $this->exportStopped('pages', 'node:' . end($nids));
-    }
     $siteHome = $this->siteHome();
     $aliases = $this->pathAliasMarkers(array_map('intval', $nids));
     foreach ($storage->loadMultiple($nids) as $node) {
@@ -326,10 +323,6 @@ class DrupalHost extends AbstractHost {
         }
       }
       foreach ($translations as $langcode => $url) {
-        if ($count >= 2000) {
-          $this->exportStopped('pages', 'node:' . $node->id() . ':' . $langcode);
-          return;
-        }
         $translation = $node->getTranslation($langcode);
         try {
           $this->accountSwitcher->switchTo($anonymous);
@@ -381,7 +374,7 @@ class DrupalHost extends AbstractHost {
     $anonymous = User::getAnonymousUser();
     $this->accountSwitcher->switchTo($anonymous);
     try {
-      $query = $storage->getQuery()->accessCheck(TRUE)->condition('status', 1)->sort('nid')->range(0, 2000);
+      $query = $storage->getQuery()->accessCheck(TRUE)->condition('status', 1)->sort('nid');
       if ($bundles) {
         $query->condition('type', $bundles, 'IN');
       }
@@ -393,9 +386,6 @@ class DrupalHost extends AbstractHost {
     }
     finally {
       $this->accountSwitcher->switchBack();
-    }
-    if (count($nids) >= 2000) {
-      $this->exportStopped('pages', 'node:' . end($nids));
     }
     if (!$nids) {
       return [];
@@ -698,11 +688,8 @@ class DrupalHost extends AbstractHost {
     }
     try {
       $storage = $this->entityTypeManager->getStorage('commerce_product');
-      $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->sort('product_id')->range(0, 501);
+      $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->sort('product_id');
       $ids = array_values($query->execute());
-      if (count($ids) >= 500) {
-        $this->exportStopped('products', (string) $ids[499]);
-      }
       if (!$ids) {
         return [];
       }
@@ -790,7 +777,7 @@ class DrupalHost extends AbstractHost {
    * Exports selected Commerce products.
    */
   public function productDocumentsByIds(array $ids): iterable {
-    return $this->productRowsForIds(500, array_map('intval', $ids));
+    return $this->productRowsForIds(count($ids), array_map('intval', $ids));
   }
 
   /**
@@ -909,16 +896,12 @@ class DrupalHost extends AbstractHost {
     if (!$this->productsAvailable() || $cap < 1) {
       return [];
     }
-    $cap = min(500, $cap);
     $storage = $this->entityTypeManager->getStorage('commerce_product');
     $query = $storage->getQuery()->accessCheck(FALSE)->condition('status', 1)->sort('product_id');
     if ($filterIds) {
       $query->condition('product_id', $filterIds, 'IN');
     }
     $ids = $query->range(0, $cap)->execute();
-    if (count($ids) >= $cap) {
-      $this->exportStopped('products', (string) end($ids));
-    }
     $rows = [];
     $converter = new HtmlToText();
     $anonymous = User::getAnonymousUser();
